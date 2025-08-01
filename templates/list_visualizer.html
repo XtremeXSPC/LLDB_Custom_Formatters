@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Interactive List Visualizer</title>
+    <style type="text/css">
+      html,
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        margin: 0;
+        background: linear-gradient(135deg, #f4ecd8 0%, #e8dcc0 100%);
+        overflow-x: hidden; /* Prevent horizontal scrollbar from info-box */
+      }
+      #mynetwork {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+      }
+      #info-box {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.95) 0%,
+          rgba(248, 240, 225, 0.95) 100%
+        );
+        border: 1px solid #d4a574;
+        border-radius: 12px;
+        padding: 18px;
+        z-index: 2;
+        box-shadow: 0 6px 20px rgba(139, 126, 110, 0.3);
+        font-size: 14px;
+        backdrop-filter: blur(5px);
+        max-width: 300px;
+        max-height: 90vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-width: thin;
+        scrollbar-color: #d4a574 transparent;
+        transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+      }
+      #info-box.hidden {
+        transform: translateX(calc(100% + 40px));
+        opacity: 0;
+        pointer-events: none;
+      }
+      #info-box::-webkit-scrollbar {
+        width: 6px;
+      }
+      #info-box::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      #info-box::-webkit-scrollbar-thumb {
+        background-color: #d4a574;
+        border-radius: 3px;
+      }
+      #info-box::-webkit-scrollbar-thumb:hover {
+        background-color: #c49771;
+      }
+
+      /* Toggle button for info-box */
+      #toggle-info-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background-color: #a67c52;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 45px;
+        height: 45px;
+        cursor: pointer;
+        font-size: 18px;
+        z-index: 3;
+        box-shadow: 0 4px 12px rgba(139, 126, 110, 0.4);
+        transition: all 0.3s ease-in-out;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #toggle-info-btn:hover {
+        background-color: #8b6f47;
+        transform: scale(1.05);
+      }
+      #toggle-info-btn.info-visible {
+        transform: translateX(-340px);
+      }
+
+      /* Initial state - info-box starts hidden */
+      #info-box.hidden + #toggle-info-btn {
+        transform: translateX(0);
+      }
+      #info-box h3 {
+        margin-top: 0;
+        font-size: 18px;
+        color: #5e5146;
+        text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+      }
+      #info-box table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 10px;
+      }
+      #info-box th,
+      #info-box td {
+        text-align: left;
+        padding: 8px;
+        border-bottom: 1px solid #d4a574;
+      }
+      #info-box th {
+        font-weight: bold;
+        color: #6b5d52;
+      }
+      #info-box td {
+        color: #5e5146;
+      }
+      .button-group {
+        display: flex;
+        gap: 5px;
+        margin: 5px 0;
+      }
+      .button-group button {
+        flex: 1;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+        transition: all 0.2s;
+      }
+      .play-button {
+        background-color: #a67c52;
+        color: white;
+        border: none;
+        padding: 12px 15px;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        width: 100%;
+        margin: 10px 0;
+        box-sizing: border-box;
+      }
+      .play-button:hover {
+        background-color: #8b6f47;
+      }
+      .play-button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+      .layout-controls,
+      .search-controls,
+      .export-controls {
+        margin-top: 15px;
+        padding-top: 12px;
+        border-top: 1px solid #d4a574;
+      }
+      .animation-controls {
+        margin-top: 15px;
+        padding-top: 12px;
+        /* Removed border-top to eliminate separator */
+      }
+      .layout-controls button,
+      .animation-controls button,
+      .export-controls button {
+        background-color: #6b5d52;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 2px;
+        font-size: 12px;
+        transition: background-color 0.2s;
+      }
+      .layout-controls button:hover,
+      .animation-controls button:hover,
+      .export-controls button:hover {
+        background-color: #5e5146;
+      }
+      .layout-controls button.active {
+        background-color: #a67c52;
+      }
+      .section-title {
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #6b5d52;
+        font-size: 13px;
+      }
+      .search-box {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #d4a574;
+        border-radius: 4px;
+        font-size: 12px;
+        box-sizing: border-box;
+        background: rgba(255, 255, 255, 0.8);
+      }
+      .stats-display {
+        background: rgba(248, 240, 225, 0.7);
+        padding: 10px;
+        border-radius: 6px;
+        margin: 10px 0;
+        font-size: 12px;
+      }
+      .speed-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 8px 0;
+      }
+      .speed-control input {
+        flex: 1;
+        -webkit-appearance: none;
+        appearance: none;
+        height: 6px;
+        border-radius: 3px;
+        background: linear-gradient(to right, #a67c52 0%, #d4a574 100%);
+        outline: none;
+      }
+      .speed-control input::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #6b5d52;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+      .speed-control input::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #6b5d52;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+      .speed-control span {
+        font-size: 11px;
+        color: #6b5d52;
+      }
+      .node-info {
+        background: rgba(52, 168, 83, 0.1);
+        padding: 8px;
+        border-radius: 4px;
+        margin: 5px 0;
+        font-size: 11px;
+        border-left: 3px solid #34a853;
+      }
+      .export-controls button {
+        background-color: #6b5d52;
+        color: white;
+      }
+      .export-controls button:hover {
+        background-color: #5e5146;
+      }
+
+      /* CSS Icons */
+      .icon-play::before {
+        content: "▶";
+      }
+      .icon-pause::before {
+        content: "⏸";
+      }
+      .icon-stop::before {
+        content: "⏹";
+      }
+      .icon-step::before {
+        content: "⏭";
+      }
+      .icon-path::before {
+        content: "🛤";
+      }
+      .icon-neighbors::before {
+        content: "👥";
+      }
+      .icon-clear::before {
+        content: "🧹";
+      }
+      .icon-png::before {
+        content: "🖼";
+      }
+      .icon-json::before {
+        content: "📋";
+      }
+      .legend {
+        background: rgba(248, 240, 225, 0.5);
+        padding: 8px;
+        border-radius: 4px;
+        margin: 8px 0;
+        font-size: 11px;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        margin: 3px 0;
+      }
+      .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
+        margin-right: 6px;
+      }
+    </style>
+    <script type="text/javascript">
+      // Include the vis.js library
+      __VISJS_LIBRARY__;
+    </script>
+  </head>
+  <body>
+    <!-- Toggle button for info-box -->
+    <button
+      id="toggle-info-btn"
+      onclick="toggleInfoBox()"
+      title="Toggle Info Panel"
+    >
+      ⚙️
+    </button>
+
+    <div id="info-box" class="hidden">
+      __TYPE_INFO_HTML__
+
+      <!-- Animation Controls -->
+      <div class="animation-controls">
+        <div class="section-title">Animation</div>
+        <button class="play-button" onclick="playAnimation()" id="play-btn">
+          <span class="icon-play"></span> Play Traversal Animation
+        </button>
+        <div class="speed-control">
+          <span>Speed:</span>
+          <input
+            type="range"
+            id="speed-slider"
+            min="100"
+            max="1000"
+            value="400"
+            step="50"
+          />
+          <span id="speed-value">400ms</span>
+        </div>
+        <div class="button-group">
+          <button onclick="pauseAnimation()" id="pause-btn">
+            <span class="icon-pause"></span> Pause
+          </button>
+          <button onclick="stopAnimation()" id="stop-btn">
+            <span class="icon-stop"></span> Stop
+          </button>
+          <button onclick="stepAnimation()" id="step-btn">
+            <span class="icon-step"></span> Step
+          </button>
+        </div>
+      </div>
+
+      <!-- Layout Controls -->
+      <div class="layout-controls">
+        <div class="section-title">Layout</div>
+        <button
+          onclick="setLayout('hierarchical')"
+          class="active"
+          id="hierarchical-btn"
+        >
+          Hierarchical
+        </button>
+        <button onclick="setLayout('physics')" id="physics-btn">Physics</button>
+        <button onclick="setLayout('circular')" id="circular-btn">
+          Circular
+        </button>
+      </div>
+
+      <!-- Search Controls -->
+      <div class="search-controls">
+        <div class="section-title">Search & Highlight</div>
+        <input
+          type="text"
+          class="search-box"
+          id="search-input"
+          placeholder="Search node values..."
+          oninput="searchNodes(this.value)"
+        />
+        <div class="button-group">
+          <button onclick="highlightPath()">
+            <span class="icon-path"></span> Path
+          </button>
+          <button onclick="highlightNeighbors()">
+            <span class="icon-neighbors"></span> Neighbors
+          </button>
+          <button onclick="clearHighlights()">
+            <span class="icon-clear"></span> Clear
+          </button>
+        </div>
+      </div>
+
+      <!-- Statistics Display -->
+      <div class="stats-display" id="stats-display">
+        <div class="section-title">Statistics</div>
+        <div id="graph-stats"></div>
+      </div>
+
+      <!-- Node Information -->
+      <div class="node-info" id="node-info" style="display: none">
+        <div class="section-title">Selected Node</div>
+        <div id="node-details"></div>
+      </div>
+
+      <!-- Legend -->
+      <div class="legend">
+        <div class="section-title">Legend</div>
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #a67c52"></div>
+          <span>Normal Node</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #34a853"></div>
+          <span>Current/Animated</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #ff6b6b"></div>
+          <span>Highlighted</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #4ecdc4"></div>
+          <span>Search Result</span>
+        </div>
+      </div>
+
+      <!-- Export Controls -->
+      <div class="export-controls">
+        <div class="section-title">Export</div>
+        <div class="button-group">
+          <button onclick="exportPNG()">
+            <span class="icon-png"></span> PNG
+          </button>
+          <button onclick="exportJSON()">
+            <span class="icon-json"></span> JSON
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="mynetwork"></div>
+
+    <script type="text/javascript">
+      // ----- Data from Python ----- //
+      const rawNodesData = __NODES_DATA__;
+      const rawEdgesData = __EDGES_DATA__;
+      const traversalOrder = __TRAVERSAL_ORDER_DATA__;
+      const isDoublyLinked = __IS_DOUBLY_LINKED__;
+
+      // Process raw data into vis.js format
+      const processedNodes = rawNodesData.map((node) => ({
+        id: node.id,
+        value: node.value,
+        address: node.address,
+        label: String(node.value),
+        title: `Value: ${node.value}\nAddress: ${node.address}`,
+        originalColor: "#a67c52",
+      }));
+
+      const processedEdges = rawEdgesData.map((edge) => ({
+        ...edge,
+        arrows: { to: { enabled: true }, from: { enabled: isDoublyLinked } },
+      }));
+
+      // Enhanced color palette
+      const colorPalette = {
+        nodeDefault: "#a67c52",
+        nodeBorder: "#8b6f47",
+        nodeHover: "#c49771",
+        nodeSelected: "#d4a574",
+        nodeAnimated: "#34a853",
+        nodeAnimatedBorder: "#2c8b45",
+        nodeHighlighted: "#ff6b6b",
+        nodeHighlightedBorder: "#e55555",
+        nodeSearchResult: "#4ecdc4",
+        nodeSearchBorder: "#45b7b8",
+        textDefault: "#ffffff",
+        edgeDefault: "#8b6f47",
+        edgeHighlighted: "#ff6b6b",
+      };
+
+      // Animation state management
+      let animationState = {
+        isPlaying: false,
+        isPaused: false,
+        currentStep: 0,
+        timeouts: [],
+        speed: 400,
+      };
+
+      // UI state
+      let uiState = {
+        physicsEnabled: false,
+      };
+
+      // Vis.js Network Configuration
+      const container = document.getElementById("mynetwork");
+      const nodes = new vis.DataSet(processedNodes);
+      const edges = new vis.DataSet(processedEdges);
+      const data = { nodes: nodes, edges: edges };
+
+      // Different layout configurations
+      const layoutConfigs = {
+        hierarchical: {
+          layout: {
+            hierarchical: {
+              enabled: true,
+              direction: "LR",
+              sortMethod: "directed",
+              levelSeparation: 120,
+              nodeSpacing: 80,
+              blockShifting: true,
+              edgeMinimization: true,
+              parentCentralization: true,
+            },
+          },
+          physics: { enabled: false },
+        },
+        physics: {
+          layout: { randomSeed: 2 },
+          physics: {
+            enabled: true,
+            stabilization: { iterations: 100 },
+            barnesHut: {
+              gravitationalConstant: -2000,
+              centralGravity: 0.3,
+              springLength: 95,
+              springConstant: 0.04,
+              damping: 0.09,
+            },
+          },
+        },
+        circular: {
+          layout: { randomSeed: 2 },
+          physics: {
+            enabled: true,
+            stabilization: { iterations: 50 },
+            repulsion: {
+              centralGravity: 0.2,
+              springLength: 200,
+              springConstant: 0.05,
+              nodeDistance: 100,
+              damping: 0.09,
+            },
+            solver: "repulsion",
+          },
+        },
+      };
+
+      const baseOptions = {
+        interaction: {
+          dragNodes: true,
+          zoomView: true,
+          dragView: true,
+          hover: true,
+          tooltipDelay: 200,
+          selectConnectedEdges: false,
+        },
+        nodes: {
+          shape: "box",
+          shapeProperties: { borderRadius: 8 },
+          margin: 10,
+          font: {
+            color: colorPalette.textDefault,
+            size: 18,
+            face: "arial",
+            bold: { color: colorPalette.textDefault },
+          },
+          borderWidth: 3,
+          color: {
+            border: colorPalette.nodeBorder,
+            background: colorPalette.nodeDefault,
+            highlight: {
+              border: colorPalette.nodeHover,
+              background: "#c49771",
+            },
+            hover: { border: colorPalette.nodeHover, background: "#c49771" },
+          },
+          shadow: {
+            enabled: true,
+            color: "rgba(0, 0, 0, 0.4)",
+            size: 15,
+            x: 8,
+            y: 8,
+          },
+        },
+        edges: {
+          width: 2,
+          color: {
+            color: colorPalette.edgeDefault,
+            inherit: false,
+            opacity: 0.8,
+          },
+          smooth: {
+            type: "cubicBezier",
+            forceDirection: "horizontal",
+            roundness: 0.4,
+          },
+        },
+      };
+
+      let currentLayout = "hierarchical";
+      let network;
+
+      function createNetwork(layoutType) {
+        const options = { ...baseOptions, ...layoutConfigs[layoutType] };
+        if (network) {
+          network.destroy();
+        }
+        network = new vis.Network(container, data, options);
+
+        // Add event listeners
+        network.on("click", handleNodeClick);
+        network.on("hoverNode", handleNodeHover);
+        network.on("blurNode", handleNodeBlur);
+        network.on("stabilizationIterationsDone", updateStats);
+
+        updateStats();
+      }
+
+      function setLayout(layoutType) {
+        currentLayout = layoutType;
+        document.querySelectorAll(".layout-controls button").forEach((btn) => {
+          btn.classList.remove("active");
+        });
+        document.getElementById(layoutType + "-btn").classList.add("active");
+        createNetwork(layoutType);
+      }
+
+      // Enhanced Animation Functions
+      function playAnimation() {
+        if (animationState.isPaused) {
+          resumeAnimation();
+          return;
+        }
+
+        stopAnimation();
+        resetAllNodeColors();
+        animationState.isPlaying = true;
+        animationState.currentStep = 0;
+
+        updatePlayButton("⏸ Pause");
+
+        function animateStep(index) {
+          if (!animationState.isPlaying || index >= traversalOrder.length) {
+            if (index >= traversalOrder.length) {
+              setTimeout(() => {
+                resetAllNodeColors();
+                animationState.isPlaying = false;
+                updatePlayButton("▶ Play Traversal Animation");
+              }, animationState.speed * 2);
+            }
+            return;
+          }
+
+          const nodeId = traversalOrder[index];
+          nodes.update({
+            id: nodeId,
+            color: {
+              background: colorPalette.nodeAnimated,
+              border: colorPalette.nodeAnimatedBorder,
+            },
+          });
+
+          if (index > 0) {
+            const prevNodeId = traversalOrder[index - 1];
+            nodes.update({
+              id: prevNodeId,
+              color: {
+                background: colorPalette.nodeDefault,
+                border: colorPalette.nodeBorder,
+              },
+            });
+          }
+
+          animationState.currentStep = index + 1;
+          const timeout = setTimeout(
+            () => animateStep(index + 1),
+            animationState.speed
+          );
+          animationState.timeouts.push(timeout);
+        }
+
+        animateStep(0);
+      }
+
+      function pauseAnimation() {
+        if (animationState.isPlaying) {
+          animationState.isPlaying = false;
+          animationState.isPaused = true;
+          animationState.timeouts.forEach(clearTimeout);
+          animationState.timeouts = [];
+          updatePlayButton("▶ Resume");
+        }
+      }
+
+      function resumeAnimation() {
+        if (animationState.isPaused) {
+          animationState.isPaused = false;
+          animationState.isPlaying = true;
+          updatePlayButton("⏸ Pause");
+
+          function animateStep(index) {
+            if (!animationState.isPlaying || index >= traversalOrder.length) {
+              if (index >= traversalOrder.length) {
+                setTimeout(() => {
+                  resetAllNodeColors();
+                  animationState.isPlaying = false;
+                  updatePlayButton("▶ Play Traversal Animation");
+                }, animationState.speed * 2);
+              }
+              return;
+            }
+
+            const nodeId = traversalOrder[index];
+            nodes.update({
+              id: nodeId,
+              color: {
+                background: colorPalette.nodeAnimated,
+                border: colorPalette.nodeAnimatedBorder,
+              },
+            });
+
+            if (index > 0) {
+              const prevNodeId = traversalOrder[index - 1];
+              nodes.update({
+                id: prevNodeId,
+                color: {
+                  background: colorPalette.nodeDefault,
+                  border: colorPalette.nodeBorder,
+                },
+              });
+            }
+
+            animationState.currentStep = index + 1;
+            const timeout = setTimeout(
+              () => animateStep(index + 1),
+              animationState.speed
+            );
+            animationState.timeouts.push(timeout);
+          }
+
+          animateStep(animationState.currentStep);
+        }
+      }
+
+      function stopAnimation() {
+        animationState.isPlaying = false;
+        animationState.isPaused = false;
+        animationState.currentStep = 0;
+        animationState.timeouts.forEach(clearTimeout);
+        animationState.timeouts = [];
+        resetAllNodeColors();
+        updatePlayButton("▶ Play Traversal Animation");
+      }
+
+      function stepAnimation() {
+        if (animationState.isPlaying) return;
+
+        if (animationState.currentStep < traversalOrder.length) {
+          const nodeId = traversalOrder[animationState.currentStep];
+          nodes.update({
+            id: nodeId,
+            color: {
+              background: colorPalette.nodeAnimated,
+              border: colorPalette.nodeAnimatedBorder,
+            },
+          });
+
+          if (animationState.currentStep > 0) {
+            const prevNodeId = traversalOrder[animationState.currentStep - 1];
+            nodes.update({
+              id: prevNodeId,
+              color: {
+                background: colorPalette.nodeDefault,
+                border: colorPalette.nodeBorder,
+              },
+            });
+          }
+
+          animationState.currentStep++;
+        } else {
+          resetAllNodeColors();
+          animationState.currentStep = 0;
+        }
+      }
+
+      function updatePlayButton(text) {
+        const btn = document.getElementById("play-btn");
+        if (text.includes("Play")) {
+          btn.innerHTML =
+            '<span class="icon-play"></span> Play Traversal Animation';
+        } else if (text.includes("Pause")) {
+          btn.innerHTML = '<span class="icon-pause"></span> Pause';
+        } else if (text.includes("Resume")) {
+          btn.innerHTML = '<span class="icon-play"></span> Resume';
+        }
+      }
+
+      // Search and Highlight Functions
+      function searchNodes(query) {
+        clearHighlights();
+        if (!query.trim()) return;
+
+        const matchingNodes = nodes
+          .get()
+          .filter(
+            (node) =>
+              String(node.value).toLowerCase().includes(query.toLowerCase()) ||
+              String(node.address).toLowerCase().includes(query.toLowerCase())
+          );
+
+        matchingNodes.forEach((node) => {
+          nodes.update({
+            id: node.id,
+            color: {
+              background: colorPalette.nodeSearchResult,
+              border: colorPalette.nodeSearchBorder,
+            },
+          });
+        });
+      }
+
+      function highlightPath() {
+        clearHighlights();
+        traversalOrder.forEach((nodeId, index) => {
+          setTimeout(() => {
+            nodes.update({
+              id: nodeId,
+              color: {
+                background: colorPalette.nodeHighlighted,
+                border: colorPalette.nodeHighlightedBorder,
+              },
+            });
+          }, index * 100);
+        });
+      }
+
+      function highlightNeighbors() {
+        const selectedNodes = network.getSelectedNodes();
+        if (selectedNodes.length === 0) return;
+
+        clearHighlights();
+        const nodeId = selectedNodes[0];
+        const connectedEdges = network.getConnectedEdges(nodeId);
+        const neighbors = network.getConnectedNodes(nodeId);
+
+        // Highlight selected node
+        nodes.update({
+          id: nodeId,
+          color: {
+            background: colorPalette.nodeAnimated,
+            border: colorPalette.nodeAnimatedBorder,
+          },
+        });
+
+        // Highlight neighbors
+        neighbors.forEach((neighborId) => {
+          nodes.update({
+            id: neighborId,
+            color: {
+              background: colorPalette.nodeHighlighted,
+              border: colorPalette.nodeHighlightedBorder,
+            },
+          });
+        });
+
+        // Highlight edges
+        const edgeUpdates = connectedEdges.map((edgeId) => ({
+          id: edgeId,
+          color: { color: colorPalette.edgeHighlighted },
+        }));
+        edges.update(edgeUpdates);
+      }
+
+      function clearHighlights() {
+        resetAllNodeColors();
+        const edgeUpdates = edges.getIds().map((id) => ({
+          id: id,
+          color: { color: colorPalette.edgeDefault },
+        }));
+        edges.update(edgeUpdates);
+      }
+
+      // Event Handlers
+      function handleNodeClick(params) {
+        if (params.nodes.length > 0) {
+          const nodeId = params.nodes[0];
+          const nodeData = nodes.get(nodeId);
+          showNodeInfo(nodeData);
+        } else {
+          hideNodeInfo();
+        }
+      }
+
+      function handleNodeHover(params) {
+        const nodeId = params.node;
+        const nodeData = nodes.get(nodeId);
+        container.title = `Value: ${nodeData.value}\nAddress: ${nodeData.address}\nClick for details`;
+      }
+
+      function handleNodeBlur() {
+        container.title = "";
+      }
+
+      function showNodeInfo(nodeData) {
+        const infoDiv = document.getElementById("node-info");
+        const detailsDiv = document.getElementById("node-details");
+
+        // Find connections
+        const connectedEdges = network.getConnectedEdges(nodeData.id);
+        const incomingEdges = edges
+          .get(connectedEdges)
+          .filter((edge) => edge.to === nodeData.id);
+        const outgoingEdges = edges
+          .get(connectedEdges)
+          .filter((edge) => edge.from === nodeData.id);
+
+        detailsDiv.innerHTML = `
+          <strong>Value:</strong> ${nodeData.value}<br>
+          <strong>Address:</strong> ${nodeData.address}<br>
+          <strong>ID:</strong> ${nodeData.id}<br>
+          <strong>Connections:</strong> ${connectedEdges.length}<br>
+          <strong>Incoming:</strong> ${incomingEdges.length}<br>
+          <strong>Outgoing:</strong> ${outgoingEdges.length}
+        `;
+
+        infoDiv.style.display = "block";
+      }
+
+      function hideNodeInfo() {
+        document.getElementById("node-info").style.display = "none";
+      }
+
+      // Statistics Functions
+      function updateStats() {
+        const statsDiv = document.getElementById("graph-stats");
+        const nodeCount = nodes.length;
+        const edgeCount = edges.length;
+        const isolatedNodes = nodes
+          .get()
+          .filter(
+            (node) => network.getConnectedNodes(node.id).length === 0
+          ).length;
+
+        // Calculate degree distribution
+        const degrees = nodes
+          .get()
+          .map((node) => network.getConnectedNodes(node.id).length);
+        const maxDegree = Math.max(...degrees);
+        const avgDegree = degrees.reduce((a, b) => a + b, 0) / degrees.length;
+
+        statsDiv.innerHTML = `
+          <strong>Nodes:</strong> ${nodeCount}<br>
+          <strong>Edges:</strong> ${edgeCount}<br>
+          <strong>Isolated:</strong> ${isolatedNodes}<br>
+          <strong>Max Degree:</strong> ${maxDegree}<br>
+          <strong>Avg Degree:</strong> ${avgDegree.toFixed(2)}<br>
+          <strong>Density:</strong> ${(
+            edgeCount /
+            (nodeCount * (nodeCount - 1))
+          ).toFixed(3)}
+        `;
+      }
+
+      // Export Functions
+      function exportPNG() {
+        const canvas = network.canvas.frame.canvas;
+        const link = document.createElement("a");
+        link.download = "graph-visualization.png";
+        link.href = canvas.toDataURL();
+        link.click();
+      }
+
+      function exportJSON() {
+        const graphData = {
+          nodes: nodes.get(),
+          edges: edges.get(),
+          traversalOrder: traversalOrder,
+          isDoublyLinked: isDoublyLinked,
+          layout: currentLayout,
+          timestamp: new Date().toISOString(),
+        };
+
+        const blob = new Blob([JSON.stringify(graphData, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "graph-data.json";
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+
+      function resetAllNodeColors() {
+        nodes.getIds().forEach((nodeId) => {
+          nodes.update({
+            id: nodeId,
+            color: {
+              background: colorPalette.nodeDefault,
+              border: colorPalette.nodeBorder,
+            },
+          });
+        });
+      }
+
+      // Speed control
+      document
+        .getElementById("speed-slider")
+        .addEventListener("input", function (e) {
+          animationState.speed = parseInt(e.target.value);
+          document.getElementById("speed-value").textContent =
+            animationState.speed + "ms";
+        });
+
+      // Toggle info-box visibility
+      function toggleInfoBox() {
+        const infoBox = document.getElementById("info-box");
+        const toggleBtn = document.getElementById("toggle-info-btn");
+
+        infoBox.classList.toggle("hidden");
+        if (infoBox.classList.contains("hidden")) {
+          toggleBtn.classList.remove("info-visible");
+          toggleBtn.innerHTML = "⚙️";
+          toggleBtn.title = "Show Info Panel";
+        } else {
+          toggleBtn.classList.add("info-visible");
+          toggleBtn.innerHTML = "❌";
+          toggleBtn.title = "Hide Info Panel";
+        }
+      }
+
+      // Initialize with hierarchical layout
+      createNetwork("hierarchical");
+
+      // Initialize UI state
+      updateStats();
+
+      // Set initial state of info box to hidden
+      document.addEventListener("DOMContentLoaded", function () {
+        const infoBox = document.getElementById("info-box");
+        const toggleBtn = document.getElementById("toggle-info-btn");
+        infoBox.classList.add("hidden");
+        toggleBtn.classList.remove("info-visible");
+        toggleBtn.innerHTML = "⚙️";
+        toggleBtn.title = "Show Info Panel";
+      });
+    </script>
+  </body>
+</html>
