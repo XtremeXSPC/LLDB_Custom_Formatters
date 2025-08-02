@@ -6,7 +6,7 @@
 
 A powerful, modern, and extensible Python-based formatter package for LLDB that provides rich, interactive visualizations and summaries for common C++ data structures. Designed to work seamlessly with IDEs like VS Code (via CodeLLDB), this package goes beyond simple text summaries, offering in-IDE web-based visualizers.
 
-![Showcase GIF]()
+![Showcase Example](/Assets/Example.webp)
 
 ---
 
