@@ -190,6 +190,7 @@ body {
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
+  white-space: nowrap;
   transition: all 0.2s ease;
   background: var(--bg-interactive);
   color: var(--text-secondary);
