@@ -83,8 +83,8 @@ This package adds several powerful commands to your LLDB console. Use `fhelp` to
 | `formatter_help`     | `fhelp` | Displays a detailed list of all custom commands.                                |
 | `formatter_config`   | `fconf` | View or change global settings (e.g., `formatter_config summary_max_items 50`). |
 | `weblist <var>`      | -       | Opens an interactive visualizer for a list.                                     |
-| `webtree <var>`      | `wt`    | Opens an interactive visualizer for a tree.                                     |
-| `webgraph <var>`     | `wg`    | Opens an interactive visualizer for a graph.                                    |
+| `webtree <var>`      | `webt`  | Opens an interactive visualizer for a tree.                                     |
+| `webgraph <var>`     | `webg`  | Opens an interactive visualizer for a graph.                                    |
 | `pptree <var>`       | -       | Pretty-prints a tree structure in the console.                                  |
 | `export_tree <var>`  | -       | Exports a tree to a Graphviz `.dot` file.                                       |
 | `export_graph <var>` | -       | Exports a graph to a Graphviz `.dot` file.                                      |

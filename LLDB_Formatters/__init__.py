@@ -144,6 +144,7 @@ def __lldb_init_module(debugger, internal_dict):
     # ----- 4. Register Command Aliases ----- #
     debugger.HandleCommand("command alias fhelp formatter_help")
     debugger.HandleCommand("command alias pptree pptree_preorder")
+    debugger.HandleCommand("command alias webt webtree")
     debugger.HandleCommand("command alias webg webgraph")
 
     # ----- 5. Final Output Message ----- #
