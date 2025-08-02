@@ -344,21 +344,32 @@
       }
 
       /**
-       * Collapses all leaf nodes (nodes with no children).
+       * Collapses all nodes except root and its direct children.
        */
       function collapseAll() {
         const allNodes = originalNodes.get();
         const allEdges = originalEdges.get();
 
-        // Find leaf nodes (nodes that have no outgoing edges)
-        const nodesWithChildren = new Set(allEdges.map((edge) => edge.from));
-        const leafNodes = allNodes.filter(
-          (node) => !nodesWithChildren.has(node.id)
+        // Find root nodes (nodes with no incoming edges)
+        const nodesWithParents = new Set(allEdges.map((edge) => edge.to));
+        const rootNodes = allNodes.filter(
+          (node) => !nodesWithParents.has(node.id)
         );
 
-        // Collapse leaf nodes
-        leafNodes.forEach((leafNode) => {
-          collapsedNodes.add(leafNode.id);
+        // Clear current collapsed state
+        collapsedNodes.clear();
+
+        // For each root node, find its direct children and collapse their subtrees
+        rootNodes.forEach((rootNode) => {
+          const directChildren = getChildrenOfNode(rootNode.id);
+
+          // For each direct child, collapse all its descendants
+          directChildren.forEach((childId) => {
+            const grandchildren = getAllDescendants(childId);
+            grandchildren.forEach((descendantId) => {
+              collapsedNodes.add(descendantId);
+            });
+          });
         });
 
         updateVisibleNodesAndEdges();
