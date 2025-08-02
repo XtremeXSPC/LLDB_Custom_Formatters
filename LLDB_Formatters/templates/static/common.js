@@ -135,11 +135,11 @@ function toggleInfoBox() {
   infoBox.classList.toggle("hidden");
   if (infoBox.classList.contains("hidden")) {
     toggleBtn.classList.remove("info-visible");
-    toggleBtn.innerHTML = "⚙️";
+    toggleBtn.innerHTML = "⚙";
     toggleBtn.title = "Show Info Panel";
   } else {
     toggleBtn.classList.add("info-visible");
-    toggleBtn.innerHTML = "➡️";
+    toggleBtn.innerHTML = "➤";
     toggleBtn.title = "Hide Info Panel";
   }
 }
