@@ -2,247 +2,13 @@
 <html>
   <head>
     <title>Interactive Graph Visualizer</title>
-    <style type="text/css">
-      html,
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          Helvetica, Arial, sans-serif;
-        width: 100%;
-        height: 100%;
-        padding: 0;
-        margin: 0;
-        background: linear-gradient(135deg, #f4ecd8 0%, #e8dcc0 100%);
-        overflow-x: hidden; /* Prevent horizontal scrollbar from info-box */
-      }
-      #mynetwork {
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 1;
-      }
-      #info-box {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        background: linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.95) 0%,
-          rgba(248, 240, 225, 0.95) 100%
-        );
-        border: 1px solid #d4a574;
-        border-radius: 12px;
-        padding: 18px;
-        z-index: 2;
-        box-shadow: 0 6px 20px rgba(139, 126, 110, 0.3);
-        font-size: 14px;
-        backdrop-filter: blur(5px);
-        max-width: 300px;
-        max-height: 90vh;
-        overflow-y: auto;
-        overflow-x: hidden;
-        scrollbar-width: thin;
-        scrollbar-color: #d4a574 transparent;
-        transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-      }
-      #info-box.hidden {
-        transform: translateX(calc(100% + 40px));
-        opacity: 0;
-        pointer-events: none;
-      }
-      #info-box::-webkit-scrollbar {
-        width: 6px;
-      }
-      #info-box::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      #info-box::-webkit-scrollbar-thumb {
-        background-color: #d4a574;
-        border-radius: 3px;
-      }
-      #info-box::-webkit-scrollbar-thumb:hover {
-        background-color: #c49771;
-      }
-
-      /* Toggle button for info-box */
-      #toggle-info-btn {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        background-color: #a67c52;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 45px;
-        height: 45px;
-        cursor: pointer;
-        font-size: 18px;
-        z-index: 3;
-        box-shadow: 0 4px 12px rgba(139, 126, 110, 0.4);
-        transition: all 0.3s ease-in-out;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      #toggle-info-btn:hover {
-        background-color: #8b6f47;
-        transform: scale(1.05);
-      }
-      #toggle-info-btn.info-visible {
-        transform: translateX(-340px);
-      }
-
-      /* Initial state - info-box starts hidden */
-      #info-box.hidden + #toggle-info-btn {
-        transform: translateX(0);
-      }
-
-      #info-box h3 {
-        margin-top: 0;
-        font-size: 18px;
-        color: #5e5146;
-        text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
-      }
-      #info-box table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 10px;
-      }
-      #info-box th,
-      #info-box td {
-        text-align: left;
-        padding: 8px;
-        border-bottom: 1px solid #d4a574;
-      }
-      #info-box th {
-        font-weight: bold;
-        color: #6b5d52;
-      }
-      #info-box td {
-        color: #5e5146;
-      }
-
-      .button-group {
-        display: flex;
-        gap: 5px;
-        margin: 5px 0;
-      }
-      .button-group button {
-        flex: 1;
-        padding: 8px 12px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 12px;
-        font-weight: bold;
-        transition: all 0.2s;
-      }
-
-      .layout-controls,
-      .search-controls,
-      .export-controls,
-      .graph-controls {
-        margin-top: 15px;
-        padding-top: 12px;
-        border-top: none;
-      }
-
-      .layout-controls button,
-      .graph-controls button,
-      .export-controls button {
-        background-color: #6b5d52;
-        color: white;
-        border: none;
-        padding: 6px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        margin: 2px;
-        font-size: 12px;
-        transition: background-color 0.2s;
-      }
-      .layout-controls button:hover,
-      .graph-controls button:hover,
-      .export-controls button:hover {
-        background-color: #5e5146;
-      }
-      .layout-controls button.active {
-        background-color: #a67c52;
-      }
-
-      .section-title {
-        font-weight: bold;
-        margin-bottom: 8px;
-        color: #6b5d52;
-        font-size: 13px;
-      }
-
-      .search-box {
-        width: 100%;
-        padding: 8px;
-        border: 1px solid #d4a574;
-        border-radius: 4px;
-        font-size: 12px;
-        box-sizing: border-box;
-        background: rgba(255, 255, 255, 0.8);
-      }
-
-      .stats-display {
-        background: rgba(248, 240, 225, 0.7);
-        padding: 10px;
-        border-radius: 6px;
-        margin: 10px 0;
-        font-size: 12px;
-      }
-
-      .node-info {
-        background: rgba(52, 168, 83, 0.1);
-        padding: 8px;
-        border-radius: 4px;
-        margin: 5px 0;
-        font-size: 11px;
-        border-left: 3px solid #34a853;
-      }
-
-      .legend {
-        background: rgba(248, 240, 225, 0.5);
-        padding: 8px;
-        border-radius: 4px;
-        margin: 8px 0;
-        font-size: 11px;
-      }
-      .legend-item {
-        display: flex;
-        align-items: center;
-        margin: 3px 0;
-      }
-      .legend-color {
-        width: 12px;
-        height: 12px;
-        border-radius: 2px;
-        margin-right: 6px;
-      }
-
-      /* CSS Icons */
-      .icon-center::before {
-        content: "🎯";
-      }
-      .icon-clear::before {
-        content: "🧹";
-      }
-      .icon-png::before {
-        content: "🖼";
-      }
-      .icon-json::before {
-        content: "📋";
-      }
+    <style>
+      /* CSS will be injected here by Python */
+      __SHARED_CSS__
     </style>
-    <script type="text/javascript">
-      // Include the vis.js library
-      __VISJS_LIBRARY__;
-    </script>
   </head>
   <body>
+    <!-- UI Controls -->
     <button
       id="toggle-info-btn"
       onclick="toggleInfoBox()"
@@ -254,30 +20,51 @@
     <div id="info-box" class="hidden">
       <h3>Graph Controls</h3>
 
-      <div class="graph-controls">
+      <div class="theme-controls">
+        <button id="theme-toggle-btn" onclick="toggleTheme()">
+          Switch to Light Theme
+        </button>
+      </div>
+
+      <!-- View Operations -->
+      <div class="controls-section">
         <div class="section-title">View Operations</div>
         <div class="button-group">
-          <button onclick="centerView()">
-            <span class="icon-center"></span> Center
+          <button id="btn-center" class="button" onclick="centerView()">
+            Center
           </button>
-          <button onclick="clearSelection()">
-            <span class="icon-clear"></span> Clear
+          <button id="btn-clear" class="button" onclick="clearSelection()">
+            Clear
           </button>
         </div>
       </div>
 
-      <div class="layout-controls">
+      <!-- Layout Controls -->
+      <div class="controls-section layout-controls">
         <div class="section-title">Layout</div>
-        <button onclick="setLayout('physics')" class="active" id="physics-btn">
-          Physics
-        </button>
-        <button onclick="setLayout('hierarchical')" id="hierarchical-btn">
-          Hierarchical
-        </button>
-        <button onclick="setLayout('radial')" id="radial-btn">Radial</button>
+        <div class="button-group">
+          <button
+            class="button active"
+            onclick="setLayout('physics')"
+            id="physics-btn"
+          >
+            Physics
+          </button>
+          <button
+            class="button"
+            onclick="setLayout('hierarchical')"
+            id="hierarchical-btn"
+          >
+            Hierarchical
+          </button>
+          <button class="button" onclick="setLayout('radial')" id="radial-btn">
+            Radial
+          </button>
+        </div>
       </div>
 
-      <div class="search-controls">
+      <!-- Search Controls -->
+      <div class="controls-section search-controls">
         <div class="section-title">Search & Highlight</div>
         <input
           type="text"
@@ -286,13 +73,14 @@
           placeholder="Search node values..."
           oninput="searchNodes(this.value)"
         />
-        <div class="button-group">
-          <button onclick="clearHighlights()">
-            <span class="icon-clear"></span> Clear
+        <div class="button-group" style="margin-top: 8px">
+          <button class="button" onclick="clearHighlights()">
+            Clear Search
           </button>
         </div>
       </div>
 
+      <!-- Statistics and Node Info -->
       <div class="stats-display" id="stats-display">
         <div class="section-title">Graph Statistics</div>
         <div id="graph-stats"></div>
@@ -303,90 +91,91 @@
         <div id="node-details"></div>
       </div>
 
+      <!-- Connected Nodes Section -->
+      <div class="connected-nodes" id="connected-nodes" style="display: none">
+        <div class="section-title">Connected Nodes</div>
+        <div id="connected-list"></div>
+      </div>
+
+      <!-- Legend -->
       <div class="legend">
         <div class="section-title">Legend</div>
         <div class="legend-item">
-          <div class="legend-color" style="background-color: #a67c52"></div>
-          <span>Normal Node</span>
+          <div class="legend-color" style="background-color: #7aa2f7"></div>
+          <span>Normal</span>
         </div>
         <div class="legend-item">
-          <div class="legend-color" style="background-color: #d4a574"></div>
+          <div class="legend-color" style="background-color: #bb9af7"></div>
           <span>Selected</span>
         </div>
         <div class="legend-item">
-          <div class="legend-color" style="background-color: #4ecdc4"></div>
-          <span>Search Result</span>
+          <div class="legend-color" style="background-color: #f7768e"></div>
+          <span>Search</span>
         </div>
         <div class="legend-item">
-          <div class="legend-color" style="background-color: #ff6b6b"></div>
+          <div class="legend-color" style="background-color: #e0af68"></div>
           <span>Connected</span>
         </div>
       </div>
 
-      <div class="export-controls">
+      <!-- Export Controls -->
+      <div class="controls-section export-controls">
         <div class="section-title">Export</div>
         <div class="button-group">
-          <button onclick="exportPNG()">
-            <span class="icon-png"></span> PNG
-          </button>
-          <button onclick="exportJSON()">
-            <span class="icon-json"></span> JSON
+          <button id="btn-png" class="button" onclick="exportPNG()">PNG</button>
+          <button id="btn-json" class="button" onclick="customExportJSON()">
+            JSON
           </button>
         </div>
       </div>
     </div>
+
+    <!-- Vis.js Container -->
     <div id="mynetwork"></div>
 
+    <!-- Scripts -->
+    <script type="text/javascript">
+      // Include the vis.js library (this would be a file include in a real scenario)
+      __VISJS_LIBRARY__;
+    </script>
+    <script type="text/javascript">
+      // Common JS functions will be injected here by Python
+      __SHARED_JS__;
+    </script>
     <script type="text/javascript">
       // ----- Data from Python ----- //
       const rawNodesData = __NODES_DATA__;
       const rawEdgesData = __EDGES_DATA__;
+
+      // ----- Vis.js Setup ----- //
+      let network;
+      let currentLayout = "physics";
 
       // Process raw data into vis.js format
       const processedNodes = rawNodesData.map((node) => ({
         id: node.id,
         label: String(node.label),
         title: node.title,
-        originalColor: "#a67c52",
+        originalData: node,
       }));
 
-      // Enhanced color palette
-      const colorPalette = {
-        nodeDefault: "#a67c52",
-        nodeBorder: "#8b6f47",
-        nodeHover: "#c49771",
-        nodeSelected: "#d4a574",
-        nodeSelectedBorder: "#b8956a",
-        nodeSearchResult: "#4ecdc4",
-        nodeSearchBorder: "#45b7b8",
-        nodeHighlighted: "#ff6b6b",
-        nodeHighlightedBorder: "#e55555",
-        textDefault: "#ffffff",
-        edgeDefault: "#8b6f47",
-        edgeSelected: "#d4a574",
-        edgeHighlighted: "#ff6b6b",
-      };
-
-      // Vis.js Network Configuration
-      const container = document.getElementById("mynetwork");
       const nodes = new vis.DataSet(processedNodes);
       const edges = new vis.DataSet(rawEdgesData);
       const data = { nodes: nodes, edges: edges };
+      const container = document.getElementById("mynetwork");
 
-      // Different layout configurations
+      // ----- Layout & Base Options ----- //
       const layoutConfigs = {
         physics: {
           physics: {
             enabled: true,
             barnesHut: {
-              gravitationalConstant: -4000,
+              gravitationalConstant: -8000,
               centralGravity: 0.1,
               springLength: 150,
               springConstant: 0.05,
             },
-            solver: "barnesHut",
           },
-          layout: {},
         },
         hierarchical: {
           layout: {
@@ -396,9 +185,6 @@
               direction: "UD",
               nodeSpacing: 150,
               levelSeparation: 170,
-              blockShifting: true, // Improves layout
-              edgeMinimization: true, // Reduces edge crossing
-              parentCentralization: true, // Centers parent nodes
             },
           },
           physics: { enabled: false },
@@ -407,13 +193,10 @@
           layout: { randomSeed: 2 },
           physics: {
             enabled: true,
-            stabilization: { iterations: 100 },
             barnesHut: {
-              gravitationalConstant: -2000,
-              centralGravity: 0.3,
-              springLength: 95,
-              springConstant: 0.04,
-              damping: 0.09,
+              gravitationalConstant: -5000,
+              centralGravity: 0.25,
+              springLength: 120,
             },
           },
         },
@@ -421,126 +204,95 @@
 
       const baseOptions = {
         interaction: {
-          dragNodes: true,
-          zoomView: true,
-          dragView: true,
           hover: true,
           tooltipDelay: 200,
           selectConnectedEdges: false,
         },
         nodes: {
           shape: "box",
-          shapeProperties: { borderRadius: 8 },
-          margin: 10,
+          shapeProperties: { borderRadius: 6 },
+          margin: 12,
           font: {
             color: colorPalette.textDefault,
             size: 16,
             face: "arial",
             bold: { color: colorPalette.textDefault },
           },
-          borderWidth: 3,
+          borderWidth: 2,
           color: {
             border: colorPalette.nodeBorder,
             background: colorPalette.nodeDefault,
             highlight: {
-              border: colorPalette.nodeHover,
-              background: "#c49771",
+              border: colorPalette.nodeSelectedBorder,
+              background: colorPalette.nodeSelected,
             },
-            hover: { border: colorPalette.nodeHover, background: "#c49771" },
+            hover: {
+              border: colorPalette.nodeHover,
+              background: colorPalette.nodeHover,
+            },
           },
           shadow: {
             enabled: true,
-            color: "rgba(139, 111, 71, 0.3)",
+            color: "rgba(0, 0, 0, 0.3)",
             size: 10,
-            x: 5,
-            y: 5,
+            x: 4,
+            y: 4,
           },
         },
         edges: {
-          arrows: { to: { enabled: true, scaleFactor: 1, type: "arrow" } },
+          arrows: { to: { enabled: true, scaleFactor: 1 } },
           width: 2,
           color: {
             color: colorPalette.edgeDefault,
-            highlight: colorPalette.edgeDefault,
+            highlight: colorPalette.edgeSelected,
             inherit: false,
-            opacity: 0.8,
+            opacity: 0.9,
           },
           smooth: { type: "dynamic" },
         },
       };
 
-      let currentLayout = "physics";
-      let network;
+      // ----- Graph-Specific Functions ----- //
 
+      /**
+       * Creates or recreates the network with a specified layout.
+       * @param {string} layoutType - The key for the layout configuration ('physics', 'hierarchical', etc.).
+       */
       function createNetwork(layoutType) {
         const options = { ...baseOptions, ...layoutConfigs[layoutType] };
-        if (network) {
-          network.destroy();
-        }
+        if (network) network.destroy();
         network = new vis.Network(container, data, options);
 
-        // Add event listeners
+        // Attach event listeners
         network.on("click", handleNodeClick);
         network.on("hoverNode", handleNodeHover);
         network.on("blurNode", handleNodeBlur);
         network.on("stabilizationIterationsDone", updateStats);
-
-        updateStats();
+        updateStats(); // Initial call
       }
 
+      /**
+       * Changes the network layout and recreates the visualization.
+       * @param {string} layoutType - The new layout to apply.
+       */
       function setLayout(layoutType) {
         currentLayout = layoutType;
-        document.querySelectorAll(".layout-controls button").forEach((btn) => {
-          btn.classList.remove("active");
-        });
-        document.getElementById(layoutType + "-btn").classList.add("active");
+        document
+          .querySelectorAll(".layout-controls button")
+          .forEach((btn) => btn.classList.remove("active"));
+        document.getElementById(`${layoutType}-btn`).classList.add("active");
         createNetwork(layoutType);
       }
 
-      // Graph Operations
-      function centerView() {
-        network.fit();
-      }
-
-      function clearSelection() {
-        resetColors();
-        hideNodeInfo();
-      }
-
-      // Search and Highlight Functions
-      function searchNodes(query) {
-        clearHighlights();
-        if (!query.trim()) return;
-
-        const matchingNodes = nodes
-          .get()
-          .filter(
-            (node) =>
-              String(node.label).toLowerCase().includes(query.toLowerCase()) ||
-              String(node.title).toLowerCase().includes(query.toLowerCase())
-          );
-
-        matchingNodes.forEach((node) => {
-          nodes.update({
-            id: node.id,
-            color: {
-              background: colorPalette.nodeSearchResult,
-              border: colorPalette.nodeSearchBorder,
-            },
-          });
-        });
-      }
-
-      function clearHighlights() {
-        resetColors();
-      }
-
-      // Event Handlers
+      /**
+       * Handles clicks on nodes to highlight them and their connections.
+       */
       function handleNodeClick(params) {
         resetColors();
+        hideConnectedNodes();
+
         if (params.nodes.length > 0) {
           const selectedNodeId = params.nodes[0];
-          const nodeData = nodes.get(selectedNodeId);
 
           // Highlight selected node
           nodes.update({
@@ -553,152 +305,107 @@
 
           // Highlight connected nodes and edges
           const connectedEdges = network.getConnectedEdges(selectedNodeId);
-          connectedEdges.forEach(function (edgeId) {
-            const edge = edges.get(edgeId);
-            const connectedNodeId =
-              edge.from === selectedNodeId ? edge.to : edge.from;
-
-            edges.update({
+          edges.update(
+            connectedEdges.map((edgeId) => ({
               id: edgeId,
               color: { color: colorPalette.edgeSelected },
-            });
+            }))
+          );
 
-            nodes.update({
-              id: connectedNodeId,
+          const connectedNodes = network.getConnectedNodes(selectedNodeId);
+          nodes.update(
+            connectedNodes.map((nodeId) => ({
+              id: nodeId,
               color: {
                 background: colorPalette.nodeHighlighted,
                 border: colorPalette.nodeHighlightedBorder,
               },
-            });
-          });
+            }))
+          );
 
-          showNodeInfo(nodeData);
+          showNodeInfo(nodes.get(selectedNodeId));
+          showConnectedNodes(selectedNodeId, connectedNodes);
         } else {
           hideNodeInfo();
+          hideConnectedNodes();
         }
       }
 
-      function handleNodeHover(params) {
-        const nodeId = params.node;
-        const nodeData = nodes.get(nodeId);
-        container.title = `${nodeData.title}\nClick for details`;
-      }
-
-      function handleNodeBlur() {
-        container.title = "";
-      }
-
+      /**
+       * Displays information about the selected node.
+       */
       function showNodeInfo(nodeData) {
         const infoDiv = document.getElementById("node-info");
         const detailsDiv = document.getElementById("node-details");
-        const connectedEdges = network.getConnectedEdges(nodeData.id);
-
-        detailsDiv.innerHTML = `
-          <strong>Label:</strong> ${nodeData.label}<br>
-          <strong>ID:</strong> ${nodeData.id}<br>
-          <strong>Connections:</strong> ${connectedEdges.length}
-        `;
-
+        const connections = network.getConnectedEdges(nodeData.id).length;
+        detailsDiv.innerHTML = `<strong>Label:</strong> ${nodeData.label}<br><strong>ID:</strong> ${nodeData.id}<br><strong>Connections:</strong> ${connections}`;
         infoDiv.style.display = "block";
       }
 
-      function hideNodeInfo() {
-        document.getElementById("node-info").style.display = "none";
+      /**
+       * Displays the list of connected nodes.
+       * @param {string} selectedNodeId - The ID of the selected node.
+       * @param {Array} connectedNodeIds - Array of connected node IDs.
+       */
+      function showConnectedNodes(selectedNodeId, connectedNodeIds) {
+        const connectedDiv = document.getElementById("connected-nodes");
+        const listDiv = document.getElementById("connected-list");
+
+        if (connectedNodeIds.length === 0) {
+          listDiv.innerHTML = "<em>No connected nodes</em>";
+        } else {
+          const connectedNodesData = connectedNodeIds.map((id) =>
+            nodes.get(id)
+          );
+          const nodesList = connectedNodesData
+            .map(
+              (node) =>
+                `<div class="connected-node-item">${node.label} (ID: ${node.id})</div>`
+            )
+            .join("");
+          listDiv.innerHTML = nodesList;
+        }
+
+        connectedDiv.style.display = "block";
       }
 
-      // Statistics Functions
+      /**
+       * Hides the connected nodes section.
+       */
+      function hideConnectedNodes() {
+        const connectedDiv = document.getElementById("connected-nodes");
+        if (connectedDiv) {
+          connectedDiv.style.display = "none";
+        }
+      }
+
+      /**
+       * Updates the statistics panel with current graph metrics.
+       */
       function updateStats() {
         const statsDiv = document.getElementById("graph-stats");
         const nodeCount = nodes.length;
         const edgeCount = edges.length;
         const avgDegree =
           nodeCount > 0 ? ((2 * edgeCount) / nodeCount).toFixed(2) : 0;
-
-        statsDiv.innerHTML = `
-          <strong>Nodes:</strong> ${nodeCount}<br>
-          <strong>Edges:</strong> ${edgeCount}<br>
-          <strong>Avg. Degree:</strong> ${avgDegree}<br>
-          <strong>Layout:</strong> ${currentLayout}
-        `;
+        statsDiv.innerHTML = `<strong>Nodes:</strong> ${nodeCount}<br><strong>Edges:</strong> ${edgeCount}<br><strong>Avg. Degree:</strong> ${avgDegree}<br><strong>Layout:</strong> ${currentLayout}`;
       }
 
-      // Export Functions
-      function exportPNG() {
-        const canvas = network.canvas.frame.canvas;
-        const link = document.createElement("a");
-        link.download = "graph-visualization.png";
-        link.href = canvas.toDataURL();
-        link.click();
-      }
-
-      function exportJSON() {
+      /**
+       * Prepares graph data and calls the shared JSON export function.
+       */
+      function customExportJSON() {
         const graphData = {
           nodes: nodes.get(),
           edges: edges.get(),
           layout: currentLayout,
           timestamp: new Date().toISOString(),
         };
-
-        const blob = new Blob([JSON.stringify(graphData, null, 2)], {
-          type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "graph-data.json";
-        link.click();
-        URL.revokeObjectURL(url);
+        exportJSON(graphData, "graph-data.json");
       }
 
-      function resetColors() {
-        const nodeUpdates = nodes.getIds().map((id) => ({
-          id: id,
-          color: {
-            background: colorPalette.nodeDefault,
-            border: colorPalette.nodeBorder,
-          },
-        }));
-        nodes.update(nodeUpdates);
-
-        const edgeUpdates = edges.getIds().map((id) => ({
-          id: id,
-          color: { color: colorPalette.edgeDefault },
-        }));
-        edges.update(edgeUpdates);
-      }
-
-      // Toggle info-box visibility
-      function toggleInfoBox() {
-        const infoBox = document.getElementById("info-box");
-        const toggleBtn = document.getElementById("toggle-info-btn");
-
-        infoBox.classList.toggle("hidden");
-        if (infoBox.classList.contains("hidden")) {
-          toggleBtn.classList.remove("info-visible");
-          toggleBtn.innerHTML = "⚙️";
-          toggleBtn.title = "Show Info Panel";
-        } else {
-          toggleBtn.classList.add("info-visible");
-          toggleBtn.innerHTML = "❌";
-          toggleBtn.title = "Hide Info Panel";
-        }
-      }
-
-      // Initialize with physics layout
-      createNetwork("physics");
-
-      // Initialize UI state
-      updateStats();
-
-      // Set initial state of info box to hidden
-      document.addEventListener("DOMContentLoaded", function () {
-        const infoBox = document.getElementById("info-box");
-        const toggleBtn = document.getElementById("toggle-info-btn");
-        infoBox.classList.add("hidden");
-        toggleBtn.classList.remove("info-visible");
-        toggleBtn.innerHTML = "⚙️";
-        toggleBtn.title = "Show Info Panel";
-      });
+      // ----- Initialisation ----- //
+      createNetwork(currentLayout);
     </script>
   </body>
 </html>

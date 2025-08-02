@@ -1,0 +1,313 @@
+/* style.css (Version 4.0 - Final UX/UI Polish) */
+
+/*
+  DESIGN TOKENS & PALETTE:
+  Defining a comprehensive set of CSS variables for a robust design system.
+  This system is based on the user-provided Tokyo Night color palette.
+*/
+:root {
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+
+  /* ----- Dark Theme (Tokyo Night Storm) ----- */
+  --bg-main-dark: #24283b; /* Lighter blue for the page background */
+  --bg-surface-dark: #1a1b26; /* Deepest blue for the panel surface */
+  --bg-interactive-dark: #414868; /* Buttons, inputs */
+  --bg-interactive-hover-dark: #565f89;
+
+  --border-color-dark: #414868;
+  --separator-color-dark: #3b4261;
+
+  --text-primary-dark: #c0caf5; /* Main text */
+  --text-secondary-dark: #a9b1d6; /* Dimmed text for stats, etc. */
+  --text-comment-dark: #565f89; /* For less important text */
+
+  /* ----- Light Theme ----- */
+  --bg-main-light: #e1e2ef; /* A soft, off-white background */
+  --bg-surface-light: #fdfdfe; /* A clean, slightly off-white panel */
+  --bg-interactive-light: #d8dbea;
+  --bg-interactive-hover-light: #c8cad9;
+
+  --border-color-light: #d8dbea;
+  --separator-color-light: #e9eaf4;
+
+  --text-primary-light: #343b58; /* Strong, dark blue for readability */
+  --text-secondary-light: #565f89;
+  --text-comment-light: #9aa5ce;
+
+  /* ----- Universal Tokens ----- */
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --shadow-elevation-1: 0 2px 4px var(--shadow-color);
+  --shadow-elevation-2: 0 6px 15px var(--shadow-color);
+  --border-radius-panel: 14px;
+  --border-radius-element: 8px;
+}
+
+/* Apply dark theme by default */
+body {
+  --bg-main: var(--bg-main-dark);
+  --bg-surface: var(--bg-surface-dark);
+  --bg-interactive: var(--bg-interactive-dark);
+  --bg-interactive-hover: var(--bg-interactive-hover-dark);
+  --border-color: var(--border-color-dark);
+  --separator-color: var(--separator-color-dark);
+  --text-primary: var(--text-primary-dark);
+  --text-secondary: var(--text-secondary-dark);
+  --text-comment: var(--text-comment-dark);
+}
+
+/* Light theme overrides */
+body.light-theme {
+  --bg-main: var(--bg-main-light);
+  --bg-surface: var(--bg-surface-light);
+  --bg-interactive: var(--bg-interactive-light);
+  --bg-interactive-hover: var(--bg-interactive-hover-light);
+  --border-color: var(--border-color-light);
+  --separator-color: var(--separator-color-light);
+  --text-primary: var(--text-primary-light);
+  --text-secondary: var(--text-secondary-light);
+  --text-comment: var(--text-comment-light);
+  --shadow-color: rgba(52, 59, 88, 0.1);
+}
+
+/* ----- General & InfoBox Styles ----- */
+html,
+body {
+  font-family: var(--font-family);
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease;
+  overflow-x: hidden;
+}
+
+#mynetwork {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+#info-box {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-panel);
+  padding: 20px;
+  z-index: 3; /* Above network */
+  box-shadow: var(--shadow-elevation-2);
+  backdrop-filter: blur(10px);
+  max-width: 300px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #bb9af7 transparent;
+  transition: transform 0.4s cubic-bezier(0.2, 1, 0.2, 1), opacity 0.4s ease;
+  color: var(--text-primary);
+}
+#info-box.hidden {
+  transform: translateX(calc(100% + 40px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ----- Close Button ----- */
+#toggle-info-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #bb9af7;
+  color: #1a1b26;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 24px;
+  z-index: 4; /* Always on top */
+  box-shadow: var(--shadow-elevation-2);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#toggle-info-btn:hover {
+  filter: brightness(1.1);
+  transform: scale(1.05);
+}
+#toggle-info-btn.info-visible {
+  /* Calculation places the button exactly 10px to the left of the panel */
+  transform: translateX(calc(-300px - 20px)); /* panel_width + right_spacing */
+}
+
+/* ----- UI Controls Refinement ----- */
+#info-box h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.controls-section,
+.theme-controls {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--separator-color);
+}
+.theme-controls {
+  margin-top: 15px;
+  padding-top: 0;
+  border-top: none;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px; /* Increased spacing */
+  margin-bottom: 10px;
+}
+
+.button,
+.theme-controls button {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-element);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  background: var(--bg-interactive);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-elevation-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.button:hover,
+.theme-controls button:hover {
+  background: var(--bg-interactive-hover);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px var(--shadow-color);
+}
+.button.active {
+  background: #7aa2f7;
+  color: #ffffff;
+  border-color: #7aa2f7;
+}
+
+.animation-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.play-button {
+  width: 100%;
+  margin-bottom: 15px;
+  background: #9ece6a;
+  color: #1a1b26; /* Force dark text for high contrast */
+  border: none;
+}
+.play-button:hover {
+  background: #9ece6a;
+  filter: brightness(1.1);
+  color: #1a1b26;
+}
+
+.speed-control {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--text-comment);
+}
+.speed-control span:first-child {
+  flex-shrink: 0;
+}
+.speed-control input {
+  flex-grow: 1;
+}
+
+.search-box {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-element);
+  font-size: 13px;
+  box-sizing: border-box;
+  background: var(--bg-interactive);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+.search-box:focus {
+  border-color: #7aa2f7;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #7aa2f7 25%, transparent);
+}
+
+.stats-display,
+.node-info,
+.connected-nodes,
+.legend {
+  background: var(--bg-main); /* Match main background for an inset look */
+  padding: 12px;
+  border-radius: var(--border-radius-element);
+  margin: 15px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  border: 1px solid var(--separator-color);
+}
+.node-info {
+  border-left: 3px solid #9ece6a;
+}
+.connected-nodes {
+  border-left: 3px solid #e0af68;
+}
+.connected-node-item {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--separator-color);
+  font-size: 11px;
+}
+.connected-node-item:last-child {
+  border-bottom: none;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  margin-right: 8px;
+}
+
+.button-icon {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

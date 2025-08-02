@@ -47,20 +47,33 @@ import shlex
 # ---------------------------------------------------------------------- #
 
 
-def _load_visjs_library():
+def _load_static_file(file_path):
     """
-    Loads the content of the vis-network.min.js library from a file.
-    Returns the content as a string or a failure message if the file
-    cannot be found or read.
+    Generic helper to load a static file from the templates/static directory.
     """
     try:
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        visjs_path = os.path.join(script_dir, "templates/vis-network.min.js")
-        with open(visjs_path, "r", encoding="utf-8") as f:
+        full_path = os.path.join(script_dir, "templates/static", file_path)
+        with open(full_path, "r", encoding="utf-8") as f:
             return f.read()
     except Exception as e:
-        debug_print(f"Failed to load vis.js library: {e}")
-        return "// FAILED TO LOAD VIS.JS LIBRARY"
+        debug_print(f"Failed to load static file {file_path}: {e}")
+        return f"/* FAILED TO LOAD {file_path} */"
+
+
+def _load_visjs_library():
+    """Loads the content of the vis-network.min.js library."""
+    return _load_static_file("vis-network.min.js")
+
+
+def _load_shared_css():
+    """Loads the content of style.css."""
+    return _load_static_file("style.css")
+
+
+def _load_shared_js():
+    """Loads the content of common.js."""
+    return _load_static_file("common.js")
 
 
 def _build_visjs_data_for_list(valobj):
@@ -111,7 +124,7 @@ def _build_visjs_data_for_list(valobj):
         if node_addr in visited_addrs:
             break  # Cycle detected
         visited_addrs.add(node_addr)
-        traversal_order.append(node_addr)
+        traversal_order.append(f"0x{node_addr:x}")
 
         node_struct = current_ptr.Dereference()
         if not node_struct or not node_struct.IsValid():
@@ -119,12 +132,21 @@ def _build_visjs_data_for_list(valobj):
 
         val_summary = get_value_summary(node_struct.GetChildMemberWithName(value_name))
         nodes_data.append(
-            {"id": node_addr, "value": val_summary, "address": f"0x{node_addr:x}"}
+            {
+                "id": f"0x{node_addr:x}",
+                "value": val_summary,
+                "address": f"0x{node_addr:x}",
+            }
         )
 
         next_node_ptr = node_struct.GetChildMemberWithName(next_ptr_name)
         if get_raw_pointer(next_node_ptr) != 0:
-            edges_data.append({"from": node_addr, "to": get_raw_pointer(next_node_ptr)})
+            edges_data.append(
+                {
+                    "from": f"0x{node_addr:x}",
+                    "to": f"0x{get_raw_pointer(next_node_ptr):x}",
+                }
+            )
         current_ptr = next_node_ptr
 
     size_member = get_child_member_by_names(valobj, ["size", "m_size", "count"])
@@ -158,14 +180,21 @@ def _build_visjs_data_for_tree(node_ptr, nodes_list, edges_list, visited):
 
     # Add the current node with a detailed tooltip
     title_str = f"Value: {val_summary}\nAddress: 0x{node_addr:x}"
-    nodes_list.append({"id": node_addr, "label": val_summary, "title": title_str})
+    nodes_list.append(
+        {
+            "id": f"0x{node_addr:x}",
+            "label": val_summary,
+            "title": title_str,
+            "address": f"0x{node_addr:x}",
+        }
+    )
 
     # Recurse on all children (supports both binary and n-ary trees)
     children = _get_node_children(node_struct)
     for child_ptr in children:
         child_addr = get_raw_pointer(child_ptr)
         if child_addr != 0:
-            edges_list.append({"from": node_addr, "to": child_addr})
+            edges_list.append({"from": f"0x{node_addr:x}", "to": f"0x{child_addr:x}"})
             _build_visjs_data_for_tree(child_ptr, nodes_list, edges_list, visited)
 
 
@@ -194,11 +223,13 @@ def _build_visjs_data_for_graph(valobj):
         val_summary = get_value_summary(
             get_child_member_by_names(node, ["value", "val", "data"])
         )
+
         nodes.append(
             {
-                "id": node_addr,
+                "id": f"0x{node_addr:x}",
                 "label": val_summary,
-                "title": f"Value: {val_summary}\nAddress: 0x{node_addr:x}",
+                "title": f"Value: {val_summary}",
+                "address": f"0x{node_addr:x}",
             }
         )
 
@@ -216,7 +247,11 @@ def _build_visjs_data_for_graph(valobj):
                 edge_tuple = tuple(sorted((node_addr, neighbor_addr)))
                 if edge_tuple not in visited_edges:
                     edges.append(
-                        {"from": node_addr, "to": neighbor_addr, "arrows": "to"}
+                        {
+                            "from": f"0x{node_addr:x}",
+                            "to": f"0x{neighbor_addr:x}",
+                            "arrows": "to",
+                        }
                     )
                     visited_edges.add(edge_tuple)
     return {"nodes_data": nodes, "edges_data": edges}
@@ -234,6 +269,9 @@ def _generate_html(template_name, template_data):
     with data, and return the final HTML string.
     """
     template_data["__VISJS_LIBRARY__"] = _load_visjs_library()
+    template_data["__SHARED_CSS__"] = _load_shared_css()
+    template_data["__SHARED_JS__"] = _load_shared_js()
+
     try:
         script_dir = os.path.dirname(os.path.abspath(__file__))
         template_path = os.path.join(script_dir, "templates", template_name)
