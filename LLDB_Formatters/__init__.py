@@ -17,7 +17,7 @@
 # ---------------------------------------------------------------------- #
 
 try:
-    import lldb # type: ignore
+    import lldb  # type: ignore
 except ImportError:
     lldb = None
 
@@ -63,7 +63,14 @@ def formatter_help_command(debugger, command, result, internal_dict):
   export_graph [{C_ARG}<variable> [file.dot]{C_RST}]
 
 {C_CMD}Interactive Web Visualizers:{C_RST}
-  webtree [{C_ARG}<variable>{C_RST}] (alias: `export_tree_web`)
+  weblist [{C_ARG}<variable>{C_RST}]
+    - Opens an interactive list visualization in your web browser.
+
+  webtree [{C_ARG}<variable>{C_RST}]
+    - Opens an interactive tree visualization in your web browser.
+    
+  webgraph [{C_ARG}<variable>{C_RST}] (alias: `webg`)
+    - Opens an interactive graph visualization in your web browser.
 
 {C_CMD}Help:{C_RST}
   formatter_help (alias: `fhelp`)
@@ -95,7 +102,7 @@ def __lldb_init_module(debugger, internal_dict):
     # Iterate over the registry populated by the @register decorators.
     for item in registry.FORMATTER_REGISTRY:
         regex = item["regex"]
-        
+
         if item["type"] == "summary":
             function_path = item["function_path"]
             # Register the summary provider function. LLDB needs the full path.
@@ -116,22 +123,28 @@ def __lldb_init_module(debugger, internal_dict):
 
     # ----- 3. Register Custom LLDB Commands ----- #
     command_map = {
+        # Help and Config
         "formatter_help": "LLDB_Formatters.formatter_help_command",
         "formatter_config": "LLDB_Formatters.config.formatter_config_command",
+        # Console Tree
         "pptree_preorder": "LLDB_Formatters.tree.pptree_preorder_command",
         "pptree_inorder": "LLDB_Formatters.tree.pptree_inorder_command",
         "pptree_postorder": "LLDB_Formatters.tree.pptree_postorder_command",
+        # File Exporters
         "export_tree": "LLDB_Formatters.tree.export_tree_command",
         "export_graph": "LLDB_Formatters.graph.export_graph_command",
-        "export_tree_web": "LLDB_Formatters.web_visualizer.export_tree_web_command",
+        # Web Visualizers
+        "weblist": "LLDB_Formatters.web_visualizer.export_list_web_command",
+        "webtree": "LLDB_Formatters.web_visualizer.export_tree_web_command",
+        "webgraph": "LLDB_Formatters.web_visualizer.export_graph_web_command",
     }
     for command, function_path in command_map.items():
         debugger.HandleCommand(f"command script add -f {function_path} {command}")
-    
+
     # ----- 4. Register Command Aliases ----- #
     debugger.HandleCommand("command alias fhelp formatter_help")
     debugger.HandleCommand("command alias pptree pptree_preorder")
-    debugger.HandleCommand("command alias webtree export_tree_web")
+    debugger.HandleCommand("command alias webg webgraph")
 
     # ----- 5. Final Output Message ----- #
     print(

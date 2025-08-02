@@ -11,11 +11,13 @@
 # directly from the LLDB console.
 # ---------------------------------------------------------------------- #
 
+
 class FormatterConfig:
     """
     A centralized class to hold all global configuration settings for the formatters.
     An instance of this class is created as a global singleton 'g_config'.
     """
+
     def __init__(self):
         # The maximum number of items to display in a summary for linear
         # containers and trees.
@@ -80,7 +82,9 @@ def formatter_config_command(debugger, command, result, internal_dict):
             setattr(g_config, key, value)
             result.AppendMessage(f"Set {key} -> {value}")
         except ValueError:
-            result.SetError(f"Invalid value. '{value_str}' is not a valid integer for '{key}'.")
+            result.SetError(
+                f"Invalid value. '{value_str}' is not a valid integer for '{key}'."
+            )
         except AttributeError:
             result.SetError(f"Unknown setting '{key}'.")
 
@@ -89,13 +93,17 @@ def formatter_config_command(debugger, command, result, internal_dict):
         valid_strategies = ["preorder", "inorder", "postorder"]
         if value_str.lower() in valid_strategies:
             g_config.tree_traversal_strategy = value_str.lower()
-            result.AppendMessage(f"Set tree_traversal_strategy -> '{g_config.tree_traversal_strategy}'")
+            result.AppendMessage(
+                f"Set tree_traversal_strategy -> '{g_config.tree_traversal_strategy}'"
+            )
         else:
-            result.SetError(f"Invalid value '{value_str}'. Valid options for tree_traversal_strategy are: {', '.join(valid_strategies)}")
+            result.SetError(
+                f"Invalid value '{value_str}'. Valid options for tree_traversal_strategy are: {', '.join(valid_strategies)}"
+            )
 
     # Handle unknown settings
     else:
-        available_settings = [k for k in dir(g_config) if not k.startswith('__')]
+        available_settings = [k for k in dir(g_config) if not k.startswith("__")]
         result.SetError(
             f"Unknown setting '{key}'.\nAvailable settings are: {', '.join(available_settings)}"
         )

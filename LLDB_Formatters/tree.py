@@ -39,6 +39,7 @@ import os
 
 # ----- Summary Provider for Tree Root ----- #
 
+
 @register_summary(r"^(Custom|My)?(Binary)?Tree<.*>$")
 def tree_summary_provider(valobj, internal_dict):
     """
@@ -47,7 +48,7 @@ def tree_summary_provider(valobj, internal_dict):
     configuration ('g_config.tree_traversal_strategy').
     """
     use_colors = should_use_colors()
-    
+
     # --- Color Definitions ---
     C_GREEN = Colors.GREEN if use_colors else ""
     C_YELLOW = Colors.YELLOW if use_colors else ""
@@ -71,18 +72,18 @@ def tree_summary_provider(valobj, internal_dict):
 
     # --- Traversal ---
     values, metadata = strategy.traverse(root_node_ptr, g_config.summary_max_items)
-    
+
     # --- Formatting ---
     colored_values = []
     for v in values:
-        if v.startswith("["): # Cycle
+        if v.startswith("["):  # Cycle
             colored_values.append(f"{C_RED}{v}{C_RESET}")
         else:
             colored_values.append(f"{C_YELLOW}{v}{C_RESET}")
 
     separator = f" {C_CYAN}->{C_RESET} "
     summary_str = separator.join(colored_values)
-    
+
     if metadata.get("truncated", False):
         summary_str += " ..."
 
@@ -95,6 +96,7 @@ def tree_summary_provider(valobj, internal_dict):
 
 
 # ----- Helper to recursively "draw" the tree for the 'pptree' command ----- #
+
 
 def _recursive_preorder_print(node_ptr, prefix, is_last, result, visited_addrs=None):
     """Helper function to recursively "draw" the tree in Pre-Order."""
@@ -126,10 +128,13 @@ def _recursive_preorder_print(node_ptr, prefix, is_last, result, visited_addrs=N
     children = _get_node_children(node)
     for i, child in enumerate(children):
         new_prefix = f"{prefix}{'    ' if is_last else '│   '}"
-        _recursive_preorder_print(child, new_prefix, i == len(children) - 1, result, visited_addrs)
+        _recursive_preorder_print(
+            child, new_prefix, i == len(children) - 1, result, visited_addrs
+        )
 
 
 # ----- Central dispatcher for all 'pptree' commands ----- #
+
 
 def _pptree_command_dispatcher(debugger, command, result, internal_dict, order):
     """
@@ -141,7 +146,9 @@ def _pptree_command_dispatcher(debugger, command, result, internal_dict, order):
         result.SetError(f"Usage: pptree_{order} <variable_name>")
         return
 
-    frame = debugger.GetSelectedTarget().GetProcess().GetSelectedThread().GetSelectedFrame()
+    frame = (
+        debugger.GetSelectedTarget().GetProcess().GetSelectedThread().GetSelectedFrame()
+    )
     if not frame.IsValid():
         result.SetError("Cannot execute command: invalid execution context.")
         return
@@ -187,13 +194,16 @@ def _pptree_command_dispatcher(debugger, command, result, internal_dict, order):
 
 # ----- User-facing command functions ----- #
 
+
 def pptree_preorder_command(debugger, command, result, internal_dict):
     """Implements the 'pptree_preorder' command."""
     _pptree_command_dispatcher(debugger, command, result, internal_dict, "preorder")
 
+
 def pptree_inorder_command(debugger, command, result, internal_dict):
     """Implements the 'pptree_inorder' command."""
     _pptree_command_dispatcher(debugger, command, result, internal_dict, "inorder")
+
 
 def pptree_postorder_command(debugger, command, result, internal_dict):
     """Implements the 'pptree_postorder' command."""
@@ -201,6 +211,7 @@ def pptree_postorder_command(debugger, command, result, internal_dict):
 
 
 # ----- LLDB Command to Export Tree as Graphviz .dot File ----- #
+
 
 def _build_dot_for_tree(node_ptr, dot_lines, visited_addrs, traversal_map=None):
     """Recursive helper to generate Graphviz .dot content for a tree."""
@@ -212,7 +223,7 @@ def _build_dot_for_tree(node_ptr, dot_lines, visited_addrs, traversal_map=None):
     node_struct = _safe_get_node_from_pointer(node_ptr)
     if not node_struct or not node_struct.IsValid():
         return
-    
+
     value = get_child_member_by_names(node_struct, ["value", "val", "data", "key"])
     val_summary = get_value_summary(value).replace('"', '\\"')
 
@@ -240,12 +251,14 @@ def export_tree_command(debugger, command, result, internal_dict):
     if not args:
         result.SetError("Usage: export_tree <variable> [file.dot] [order]")
         return
-    
+
     var_name = args[0]
     output_filename = args[1] if len(args) > 1 else "tree.dot"
     traversal_order = args[2].lower() if len(args) > 2 else None
 
-    frame = debugger.GetSelectedTarget().GetProcess().GetSelectedThread().GetSelectedFrame()
+    frame = (
+        debugger.GetSelectedTarget().GetProcess().GetSelectedThread().GetSelectedFrame()
+    )
     if not frame.IsValid():
         result.SetError("Cannot execute: invalid execution context.")
         return
@@ -265,19 +278,21 @@ def export_tree_command(debugger, command, result, internal_dict):
         strategy_map = {
             "preorder": PreOrderTreeStrategy(),
             "inorder": InOrderTreeStrategy(),
-            "postorder": PostOrderTreeStrategy()
+            "postorder": PostOrderTreeStrategy(),
         }
         if traversal_order not in strategy_map:
-            result.SetError(f"Invalid order '{traversal_order}'. Use one of {list(strategy_map.keys())}")
+            result.SetError(
+                f"Invalid order '{traversal_order}'. Use one of {list(strategy_map.keys())}"
+            )
             return
-        
+
         # This is a bit inefficient as we traverse twice, but it decouples the logic well.
         # First, we collect all node pointers in the desired order.
         strategy = strategy_map[traversal_order]
         # We need a custom implementation to get pointers, not values.
         # For now, we will skip this part of the refactoring to avoid complexity.
         # The core logic of dot generation remains.
-        pass # Placeholder for future improvement if needed.
+        pass  # Placeholder for future improvement if needed.
 
     dot_lines = ["digraph Tree {", "  node [shape=circle];"]
     visited_nodes = set()

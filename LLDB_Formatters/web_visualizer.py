@@ -17,11 +17,11 @@
 # The generated HTML file is automatically opened in the user's
 # default web browser.
 #
-# REFACTORING NOTE:
-# The logic has been refactored to separate data collection from HTML
-# generation. Public functions `generate_*_visualization_html` are now
-# available to be imported by other modules (e.g., tree.py) to avoid
-# code duplication and create a cleaner architecture.
+# DESIGN NOTE:
+# This module intentionally does NOT use the TraversalStrategy classes.
+# The strategies are designed to produce linear text summaries, while the
+# web visualizer needs the full structural information of the data
+# (nodes, edges, addresses) to render it graphically.
 # ---------------------------------------------------------------------- #
 
 from .helpers import (
@@ -30,9 +30,6 @@ from .helpers import (
     get_value_summary,
     type_has_field,
     debug_print,
-)
-
-from .tree import (
     _safe_get_node_from_pointer,
     _get_node_children,
 )
@@ -42,7 +39,6 @@ import tempfile
 import webbrowser
 import os
 import shlex
-import string
 
 
 # ---------------------------------------------------------------------- #
@@ -73,29 +69,35 @@ def _build_visjs_data_for_list(valobj):
     vis.js visualization in a dictionary.
     Returns None if the list is empty or its structure cannot be determined.
     """
-    head_ptr = get_child_member_by_names(valobj, ["head", 
-                                                  
-                                                "m_head", "_head", "top"])
+    head_ptr = get_child_member_by_names(valobj, ["head", "m_head", "_head", "top"])
     if not head_ptr or get_raw_pointer(head_ptr) == 0:
         return None
 
-    # Introspect the first node to determine member names ('next', 'value', etc.)
-    next_ptr_name, value_name, has_prev_field = None, None, False
     first_node = head_ptr.Dereference()
-    if first_node and first_node.IsValid():
-        node_type = first_node.GetType()
-        for name in ["next", "m_next", "_next", "pNext"]:
-            if type_has_field(node_type, name):
-                next_ptr_name = name
-                break
-        for name in ["value", "val", "data", "m_data", "key"]:
-            if type_has_field(node_type, name):
-                value_name = name
-                break
-        for name in ["prev", "m_prev", "_prev", "pPrev"]:
-            if type_has_field(node_type, name):
-                has_prev_field = True
-                break
+    if not first_node or not first_node.IsValid():
+        return None
+
+    # Dynamically determine member names for 'next', 'value', and 'prev'
+    node_type = first_node.GetType()
+    next_ptr_name = next(
+        (
+            n
+            for n in ["next", "m_next", "_next", "pNext"]
+            if type_has_field(node_type, n)
+        ),
+        None,
+    )
+    value_name = next(
+        (
+            n
+            for n in ["value", "val", "data", "m_data", "key"]
+            if type_has_field(node_type, n)
+        ),
+        None,
+    )
+    has_prev_field = any(
+        type_has_field(node_type, n) for n in ["prev", "m_prev", "_prev", "pPrev"]
+    )
 
     if not next_ptr_name or not value_name:
         debug_print("Could not determine list node structure ('next'/'value' members).")
@@ -120,10 +122,10 @@ def _build_visjs_data_for_list(valobj):
             {"id": node_addr, "value": val_summary, "address": f"0x{node_addr:x}"}
         )
 
-        next_ptr = node_struct.GetChildMemberWithName(next_ptr_name)
-        if get_raw_pointer(next_ptr) != 0:
-            edges_data.append({"from": node_addr, "to": get_raw_pointer(next_ptr)})
-        current_ptr = next_ptr
+        next_node_ptr = node_struct.GetChildMemberWithName(next_ptr_name)
+        if get_raw_pointer(next_node_ptr) != 0:
+            edges_data.append({"from": node_addr, "to": get_raw_pointer(next_node_ptr)})
+        current_ptr = next_node_ptr
 
     size_member = get_child_member_by_names(valobj, ["size", "m_size", "count"])
     list_size = size_member.GetValueAsUnsigned() if size_member else len(nodes_data)
@@ -132,21 +134,21 @@ def _build_visjs_data_for_list(valobj):
         "nodes_data": nodes_data,
         "edges_data": edges_data,
         "traversal_order": traversal_order,
-        "is_doubly_linked": has_prev_field,
         "list_size": list_size,
+        "is_doubly_linked": has_prev_field,
     }
 
 
-def _build_visjs_data_for_tree(node_ptr, nodes_list, edges_list, visited_addrs):
+def _build_visjs_data_for_tree(node_ptr, nodes_list, edges_list, visited):
     """
     Recursively traverses a tree from the given node pointer to build node
     and edge lists compatible with vis.js.
     """
     node_addr = get_raw_pointer(node_ptr)
-    if not node_ptr or node_addr == 0 or node_addr in visited_addrs:
+    if not node_ptr or node_addr == 0 or node_addr in visited:
         return
 
-    visited_addrs.add(node_addr)
+    visited.add(node_addr)
     node_struct = _safe_get_node_from_pointer(node_ptr)
     if not node_struct or not node_struct.IsValid():
         return
@@ -164,7 +166,7 @@ def _build_visjs_data_for_tree(node_ptr, nodes_list, edges_list, visited_addrs):
         child_addr = get_raw_pointer(child_ptr)
         if child_addr != 0:
             edges_list.append({"from": node_addr, "to": child_addr})
-            _build_visjs_data_for_tree(child_ptr, nodes_list, edges_list, visited_addrs)
+            _build_visjs_data_for_tree(child_ptr, nodes_list, edges_list, visited)
 
 
 def _build_visjs_data_for_graph(valobj):
@@ -176,21 +178,13 @@ def _build_visjs_data_for_graph(valobj):
     nodes_container = get_child_member_by_names(
         valobj, ["nodes", "m_nodes", "adj", "adjacency_list"]
     )
-    if (
-        not nodes_container
-        or not nodes_container.IsValid()
-        or not nodes_container.MightHaveChildren()
-    ):
+    if not nodes_container or not nodes_container.MightHaveChildren():
         return None
 
-    nodes_data, edges_data, all_edge_tuples = [], [], set()
-    all_nodes = [
-        nodes_container.GetChildAtIndex(i)
-        for i in range(nodes_container.GetNumChildren())
-    ]
-
     # Iterate through all nodes in the graph's adjacency list/vector
-    for node in all_nodes:
+    nodes, edges, visited_edges = [], [], set()
+    for i in range(nodes_container.GetNumChildren()):
+        node = nodes_container.GetChildAtIndex(i)
         if node.GetType().IsPointerType():
             node = node.Dereference()
         if not node or not node.IsValid():
@@ -198,15 +192,19 @@ def _build_visjs_data_for_graph(valobj):
 
         node_addr = get_raw_pointer(node)
         val_summary = get_value_summary(
-            get_child_member_by_names(node, ["value", "val", "data", "key"])
+            get_child_member_by_names(node, ["value", "val", "data"])
         )
-
-        title_str = f"Value: {val_summary}\nAddress: 0x{node_addr:x}"
-        nodes_data.append({"id": node_addr, "label": val_summary, "title": title_str})
+        nodes.append(
+            {
+                "id": node_addr,
+                "label": val_summary,
+                "title": f"Value: {val_summary}\nAddress: 0x{node_addr:x}",
+            }
+        )
 
         # Iterate through this node's neighbors to define edges
         neighbors = get_child_member_by_names(node, ["neighbors", "adj", "edges"])
-        if neighbors and neighbors.IsValid() and neighbors.MightHaveChildren():
+        if neighbors and neighbors.MightHaveChildren():
             for j in range(neighbors.GetNumChildren()):
                 neighbor = neighbors.GetChildAtIndex(j)
                 if neighbor.GetType().IsPointerType():
@@ -215,12 +213,13 @@ def _build_visjs_data_for_graph(valobj):
                     continue
 
                 neighbor_addr = get_raw_pointer(neighbor)
-                # Use a set to prevent adding duplicate directed edges
-                if (node_addr, neighbor_addr) not in all_edge_tuples:
-                    edges_data.append({"from": node_addr, "to": neighbor_addr})
-                    all_edge_tuples.add((node_addr, neighbor_addr))
-
-    return {"nodes_data": nodes_data, "edges_data": edges_data}
+                edge_tuple = tuple(sorted((node_addr, neighbor_addr)))
+                if edge_tuple not in visited_edges:
+                    edges.append(
+                        {"from": node_addr, "to": neighbor_addr, "arrows": "to"}
+                    )
+                    visited_edges.add(edge_tuple)
+    return {"nodes_data": nodes, "edges_data": edges}
 
 
 # ---------------------------------------------------------------------- #

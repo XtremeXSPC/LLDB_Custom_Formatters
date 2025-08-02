@@ -16,6 +16,7 @@
 import os
 from .config import g_config
 
+
 # ----- ANSI Color Codes ----- #
 # A simple class to hold ANSI escape sequences for colored console output.
 class Colors:
@@ -39,6 +40,7 @@ def debug_print(message):
 
 
 # -------------------------- Generic Helpers --------------------------- #
+
 
 def should_use_colors():
     """
@@ -67,7 +69,7 @@ def get_child_member_by_names(value, names):
     """
     for name in names:
         child = value.GetChildMemberWithName(name)
-        if child.IsValid():
+        if child and child.IsValid():
             return child
     return None
 
@@ -111,7 +113,9 @@ def get_value_summary(value_child):
     # Fallback to GetValue() if no summary is available.
     return value_child.GetValue()
 
-# ----- Tree-specific Helpers (Centralized) ----- #
+
+# ---------------- Tree-specific Helpers (Centralized) ----------------- #
+
 
 def _safe_get_node_from_pointer(node_ptr):
     """

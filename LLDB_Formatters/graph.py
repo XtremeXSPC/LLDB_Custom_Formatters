@@ -26,6 +26,7 @@ import shlex
 
 # ----- Formatter for Graphs (Synthetic Children) ----- #
 
+
 @register_synthetic(r"^(Custom|My)?Graph<.*>$")
 class GraphProvider:
     """
@@ -38,7 +39,7 @@ class GraphProvider:
         self.valobj = valobj
         self.nodes_container = None
         # update() is called on-demand to ensure it has the latest state.
-        
+
     def update(self):
         """Finds the container of nodes within the graph object."""
         if not self.nodes_container:
@@ -83,6 +84,7 @@ class GraphProvider:
 
 # ----- Summary Formatter for Graph Nodes ----- #
 
+
 @register_summary(r"^(Custom|My)?(Graph)?Node<.*>$")
 def graph_node_summary_provider(valobj, internal_dict):
     """
@@ -122,6 +124,7 @@ def graph_node_summary_provider(valobj, internal_dict):
 
 # ----- Custom LLDB command 'export_graph' ----- #
 
+
 def export_graph_command(debugger, command, result, internal_dict):
     """
     Implements the 'export_graph' command. It traverses a graph structure
@@ -136,7 +139,9 @@ def export_graph_command(debugger, command, result, internal_dict):
     var_name = args[0]
     output_filename = args[1] if len(args) > 1 else "graph.dot"
 
-    frame = debugger.GetSelectedTarget().GetProcess().GetSelectedThread().GetSelectedFrame()
+    frame = (
+        debugger.GetSelectedTarget().GetProcess().GetSelectedThread().GetSelectedFrame()
+    )
     if not frame.IsValid():
         result.SetError("Cannot execute: invalid execution context.")
         return
@@ -156,17 +161,20 @@ def export_graph_command(debugger, command, result, internal_dict):
     dot_lines = ["digraph G {", '  rankdir="LR";', "  node [shape=circle];"]
     edge_lines = set()
     visited_nodes = set()
-    
+
     for i in range(nodes_container.GetNumChildren()):
         node = nodes_container.GetChildAtIndex(i)
         if node.GetType().IsPointerType():
             node = node.Dereference()
-        if not node or not node.IsValid(): continue
-        
+        if not node or not node.IsValid():
+            continue
+
         node_addr = get_raw_pointer(node)
         if node_addr not in visited_nodes:
             visited_nodes.add(node_addr)
-            node_value = get_child_member_by_names(node, ["value", "val", "data", "key"])
+            node_value = get_child_member_by_names(
+                node, ["value", "val", "data", "key"]
+            )
             val_summary = get_value_summary(node_value).replace('"', '\\"')
             dot_lines.append(f'  Node_{node_addr} [label="{val_summary}"];')
 
@@ -174,9 +182,11 @@ def export_graph_command(debugger, command, result, internal_dict):
         if neighbors and neighbors.IsValid():
             for j in range(neighbors.GetNumChildren()):
                 neighbor = neighbors.GetChildAtIndex(j)
-                if neighbor.GetType().IsPointerType(): neighbor = neighbor.Dereference()
-                if not neighbor or not neighbor.IsValid(): continue
-                
+                if neighbor.GetType().IsPointerType():
+                    neighbor = neighbor.Dereference()
+                if not neighbor or not neighbor.IsValid():
+                    continue
+
                 neighbor_addr = get_raw_pointer(neighbor)
                 edge_lines.add(f"  Node_{node_addr} -> Node_{neighbor_addr};")
 

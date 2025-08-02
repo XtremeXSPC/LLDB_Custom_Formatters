@@ -63,13 +63,15 @@ def linear_container_summary_provider(valobj, internal_dict):
     C_RED = Colors.RED if use_colors else ""
 
     # Format the size information.
-    size_member = get_child_member_by_names(valobj, ["count", "size", "m_size", "_size"])
+    size_member = get_child_member_by_names(
+        valobj, ["count", "size", "m_size", "_size"]
+    )
     size_str = f"size = {size_member.GetValueAsUnsigned()}" if size_member else ""
 
     # Colorize values. Red for errors, yellow for data.
     colored_values = []
     for v in values:
-        if v.startswith("["): # Error or cycle
+        if v.startswith("["):  # Error or cycle
             colored_values.append(f"{C_RED}{v}{C_RESET}")
         else:
             colored_values.append(f"{C_YELLOW}{v}{C_RESET}")
@@ -80,7 +82,7 @@ def linear_container_summary_provider(valobj, internal_dict):
         if metadata.get("doubly_linked", False)
         else f" {C_BOLD_CYAN}->{C_RESET} "
     )
-    
+
     summary_str = separator.join(colored_values)
 
     if metadata.get("truncated", False):
