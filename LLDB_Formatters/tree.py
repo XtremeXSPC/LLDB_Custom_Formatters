@@ -37,7 +37,7 @@ import shlex
 import os
 
 
-# ----- Summary Provider for Tree Root ----- #
+# ------------------ Summary Provider for Tree Root ------------------- #
 
 
 @register_summary(r"^(Custom|My)?(Binary)?Tree<.*>$")
@@ -49,19 +49,19 @@ def tree_summary_provider(valobj, internal_dict):
     """
     use_colors = should_use_colors()
 
-    # --- Color Definitions ---
+    # Color Definitions
     C_GREEN = Colors.GREEN if use_colors else ""
     C_YELLOW = Colors.YELLOW if use_colors else ""
     C_CYAN = Colors.BOLD_CYAN if use_colors else ""
     C_RESET = Colors.RESET if use_colors else ""
     C_RED = Colors.RED if use_colors else ""
 
-    # --- Get Tree Root ---
+    # Get Tree Root
     root_node_ptr = get_child_member_by_names(valobj, ["root", "m_root", "_root"])
     if not root_node_ptr or get_raw_pointer(root_node_ptr) == 0:
         return "Tree is empty"
 
-    # --- Strategy Selection ---
+    # Strategy Selection
     strategy_name = g_config.tree_traversal_strategy
     if strategy_name == "inorder":
         strategy = InOrderTreeStrategy()
@@ -70,10 +70,10 @@ def tree_summary_provider(valobj, internal_dict):
     else:  # Default to pre-order
         strategy = PreOrderTreeStrategy()
 
-    # --- Traversal ---
+    # Traversal
     values, metadata = strategy.traverse(root_node_ptr, g_config.summary_max_items)
 
-    # --- Formatting ---
+    # Formatting
     colored_values = []
     for v in values:
         if v.startswith("["):  # Cycle
@@ -95,7 +95,7 @@ def tree_summary_provider(valobj, internal_dict):
     return f"{size_str}[{summary_str}] ({strategy_name})"
 
 
-# ----- Helper to recursively "draw" the tree for the 'pptree' command ----- #
+# ------- Helper to recursively "draw" the tree for the 'pptree' ------- #
 
 
 def _recursive_preorder_print(node_ptr, prefix, is_last, result, visited_addrs=None):
@@ -133,7 +133,7 @@ def _recursive_preorder_print(node_ptr, prefix, is_last, result, visited_addrs=N
         )
 
 
-# ----- Central dispatcher for all 'pptree' commands ----- #
+# ------------ Central dispatcher for all 'pptree' commands ------------ #
 
 
 def _pptree_command_dispatcher(debugger, command, result, internal_dict, order):
@@ -192,7 +192,7 @@ def _pptree_command_dispatcher(debugger, command, result, internal_dict, order):
     result.AppendMessage(f"[{' -> '.join(summary_parts)}]")
 
 
-# ----- User-facing command functions ----- #
+# ------------------- User-facing command functions -------------------- #
 
 
 def pptree_preorder_command(debugger, command, result, internal_dict):
@@ -210,42 +210,13 @@ def pptree_postorder_command(debugger, command, result, internal_dict):
     _pptree_command_dispatcher(debugger, command, result, internal_dict, "postorder")
 
 
-# ----- LLDB Command to Export Tree as Graphviz .dot File ----- #
-
-
-def _build_dot_for_tree(node_ptr, dot_lines, visited_addrs, traversal_map=None):
-    """Recursive helper to generate Graphviz .dot content for a tree."""
-    node_addr = get_raw_pointer(node_ptr)
-    if node_addr == 0 or node_addr in visited_addrs:
-        return
-    visited_addrs.add(node_addr)
-
-    node_struct = _safe_get_node_from_pointer(node_ptr)
-    if not node_struct or not node_struct.IsValid():
-        return
-
-    value = get_child_member_by_names(node_struct, ["value", "val", "data", "key"])
-    val_summary = get_value_summary(value).replace('"', '\\"')
-
-    label = val_summary
-    if traversal_map and node_addr in traversal_map:
-        order_index = traversal_map[node_addr]
-        label = f"{order_index}: {val_summary}"
-
-    dot_lines.append(f'  Node_{node_addr} [label="{label}"];')
-
-    children = _get_node_children(node_struct)
-    for child_ptr in children:
-        child_addr = get_raw_pointer(child_ptr)
-        if child_addr != 0:
-            dot_lines.append(f"  Node_{node_addr} -> Node_{child_addr};")
-            _build_dot_for_tree(child_ptr, dot_lines, visited_addrs, traversal_map)
+# --------- LLDB Command to Export Tree as Graphviz .dot File ---------- #
 
 
 def export_tree_command(debugger, command, result, internal_dict):
     """
     Implements the 'export_tree' command. Traverses a tree and writes
-    a Graphviz .dot file. Now uses strategies for node collection.
+    a Graphviz .dot file. Now uses a unified strategy-based approach.
     """
     args = shlex.split(command)
     if not args:
@@ -273,37 +244,42 @@ def export_tree_command(debugger, command, result, internal_dict):
         result.AppendMessage("Tree is empty.")
         return
 
-    traversal_map = None
-    if traversal_order:
-        strategy_map = {
-            "preorder": PreOrderTreeStrategy(),
-            "inorder": InOrderTreeStrategy(),
-            "postorder": PostOrderTreeStrategy(),
-        }
-        if traversal_order not in strategy_map:
-            result.SetError(
-                f"Invalid order '{traversal_order}'. Use one of {list(strategy_map.keys())}"
-            )
-            return
+    # Define available strategies.
+    strategy_map = {
+        "preorder": PreOrderTreeStrategy(),
+        "inorder": InOrderTreeStrategy(),
+        "postorder": PostOrderTreeStrategy(),
+    }
 
-        # This is a bit inefficient as we traverse twice, but it decouples the logic well.
-        # First, we collect all node pointers in the desired order.
+    # Determine the strategy and whether to annotate the graph.
+    # If an invalid order is given, we default to preorder without annotation.
+    if traversal_order in strategy_map:
         strategy = strategy_map[traversal_order]
-        # We need a custom implementation to get pointers, not values.
-        # For now, we will skip this part of the refactoring to avoid complexity.
-        # The core logic of dot generation remains.
-        pass  # Placeholder for future improvement if needed.
+        should_annotate = True
+    else:
+        strategy = PreOrderTreeStrategy()
+        should_annotate = False
 
-    dot_lines = ["digraph Tree {", "  node [shape=circle];"]
-    visited_nodes = set()
-    _build_dot_for_tree(root_node_ptr, dot_lines, visited_nodes, traversal_map)
-    dot_lines.append("}")
+    # Generate the main body of the .dot file using the selected strategy.
+    dot_body, _ = strategy.traverse_for_dot(root_node_ptr, annotate=should_annotate)
+
+    # Assemble the full .dot file content.
+    dot_lines = [
+        "digraph Tree {",
+        '  graph [rankdir="TD"];',
+        "  node [shape=circle, style=filled, fillcolor=lightblue];",
+        "  edge [arrowhead=vee];",
+        *dot_body,
+        "}",
+    ]
     dot_content = "\n".join(dot_lines)
 
     try:
         with open(output_filename, "w") as f:
             f.write(dot_content)
         result.AppendMessage(f"Successfully exported tree to '{output_filename}'.")
-        result.AppendMessage(f"Run: dot -Tpng {output_filename} -o tree.png")
+        result.AppendMessage(
+            f"To generate the image, run: dot -Tpng -Gdpi=300 {output_filename} -o tree.png"
+        )
     except IOError as e:
         result.SetError(f"Failed to write to file '{output_filename}': {e}")

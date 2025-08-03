@@ -45,7 +45,7 @@ def formatter_config_command(debugger, command, result, internal_dict):
     """
     args = command.split()
 
-    # --- Case 1: No arguments ---
+    # Case 1: No arguments
     # Print current settings and their descriptions.
     if len(args) == 0:
         result.AppendMessage("Current Formatter Settings:")
@@ -66,12 +66,12 @@ def formatter_config_command(debugger, command, result, internal_dict):
         )
         return
 
-    # --- Case 2: Wrong number of arguments ---
+    # Case 2: Wrong number of arguments
     if len(args) != 2:
         result.SetError("Usage: formatter_config <setting_name> <value>")
         return
 
-    # --- Case 3: Set a value ---
+    # Case 3: Set a value
     key = args[0]
     value_str = args[1]
 

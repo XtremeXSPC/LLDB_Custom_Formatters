@@ -105,7 +105,7 @@ body {
   box-shadow: var(--shadow-elevation-2);
   backdrop-filter: blur(10px);
   max-width: 300px;
-  max-height: 70vh; /* calc(100vh - 40px) a 70vh */
+  max-height: 90vh; /* calc(100vh - 40px) a 70vh */
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;

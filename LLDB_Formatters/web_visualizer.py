@@ -17,7 +17,7 @@
 # The generated HTML file is automatically opened in the user's
 # default web browser.
 #
-# DESIGN NOTE:
+# NOTE: ON DESIGN
 # This module intentionally does NOT use the TraversalStrategy classes.
 # The strategies are designed to produce linear text summaries, while the
 # web visualizer needs the full structural information of the data
