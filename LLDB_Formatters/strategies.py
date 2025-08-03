@@ -33,6 +33,7 @@ from .helpers import (
 )
 
 
+# ------------------- Traversal Strategy Base Class -------------------- #
 class TraversalStrategy(ABC):
     """
     Abstract base class for all traversal strategies. It defines a common
@@ -66,6 +67,7 @@ class TraversalStrategy(ABC):
         return dot_lines, metadata
 
 
+# ------------------ Concrete Traversal Strategies --------------------- #
 class LinearTraversalStrategy(TraversalStrategy):
     """A strategy for traversing linear, pointer-linked structures like lists."""
 
@@ -116,14 +118,14 @@ class LinearTraversalStrategy(TraversalStrategy):
                 break
             visited_addrs.add(node_addr)
 
-            node_struct = current_ptr.Dereference()
+            node_struct = _safe_get_node_from_pointer(current_ptr)
             if not node_struct or not node_struct.IsValid():
                 break
 
-            value_child = node_struct.GetChildMemberWithName(value_name)
+            value_child = get_child_member_by_names(node_struct, [value_name])
             values.append(get_value_summary(value_child))
 
-            current_ptr = node_struct.GetChildMemberWithName(next_ptr_name)
+            current_ptr = get_child_member_by_names(node_struct, [next_ptr_name])
 
         metadata: Dict[str, Any] = {
             "truncated": truncated,
@@ -132,11 +134,12 @@ class LinearTraversalStrategy(TraversalStrategy):
         return values, metadata
 
 
+# ----------------- Tree Traversal Strategy Base Class ----------------- #
 class TreeTraversalStrategy(TraversalStrategy):
     """
     An intermediate base class for tree traversal strategies.
 
-    This class provides a correct implementation of `traverse_for_dot` that
+    This class provides an implementation of `traverse_for_dot` that
     visualizes the actual tree structure instead of a linear list. It can
     also annotate the nodes with their traversal order.
     """
@@ -210,6 +213,7 @@ class TreeTraversalStrategy(TraversalStrategy):
                 )
 
 
+# ----------------- Concrete Tree Traversal Strategies ----------------- #
 class PreOrderTreeStrategy(TreeTraversalStrategy):
     """A strategy for traversing trees in Pre-Order (Root, Left, Right)."""
 

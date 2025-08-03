@@ -95,7 +95,7 @@ def tree_summary_provider(valobj, internal_dict):
     return f"{size_str}[{summary_str}] ({strategy_name})"
 
 
-# ------- Helper to recursively "draw" the tree for the 'pptree' ------- #
+# ------- Helper to recursively "draw" the tree for 'pptree' commands ------- #
 
 
 def _recursive_preorder_print(node_ptr, prefix, is_last, result, visited_addrs=None):

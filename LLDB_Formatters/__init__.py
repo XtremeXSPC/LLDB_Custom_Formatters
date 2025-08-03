@@ -32,7 +32,7 @@ from . import registry
 from .helpers import Colors
 
 
-# ----- Help Command ----- #
+# ---------------------------- Help Command ---------------------------- #
 def formatter_help_command(debugger, command, result, internal_dict):
     """
     Implements the 'formatter_help' command.
@@ -79,7 +79,7 @@ def formatter_help_command(debugger, command, result, internal_dict):
     result.AppendMessage(help_message)
 
 
-# ----- LLDB Module Initialization ----- #
+# --------------------- LLDB Module Initialization --------------------- #
 def __lldb_init_module(debugger, internal_dict):
     """
     This is the main entry point that LLDB calls. It handles the dynamic
