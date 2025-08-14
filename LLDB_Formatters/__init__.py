@@ -110,7 +110,7 @@ def __lldb_init_module(debugger, internal_dict):
                 lldb.SBTypeNameSpecifier(regex, True),
                 lldb.SBTypeSummary.CreateWithFunctionName(function_path),
             )
-            print(f"  - Registered summary: {function_path} for '{regex}'")
+            print(f"  - Registered summary: {function_path} for '{Colors.YELLOW}{regex}{Colors.RESET}'")
 
         elif item["type"] == "synthetic":
             class_path = item["class_path"]
@@ -119,7 +119,7 @@ def __lldb_init_module(debugger, internal_dict):
                 lldb.SBTypeNameSpecifier(regex, True),
                 lldb.SBTypeSynthetic.CreateWithClassName(class_path),
             )
-            print(f"  - Registered synthetic: {class_path} for '{regex}'")
+            print(f"  - Registered synthetic: {class_path} for '{Colors.YELLOW}{regex}{Colors.RESET}'")
 
     # ----- 3. Register Custom LLDB Commands ----- #
     command_map = {
