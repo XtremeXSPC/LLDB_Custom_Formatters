@@ -37,7 +37,7 @@ The formatters are designed to be generic and will automatically detect and form
 1. **Clone the Repository:**
 
    ```sh
-   git clone https://github.com/your-username/your-repo-name.git /path/to/LLDB_Formatters
+   git clone https://github.com/XtremeXSPC/Pretty_LLDB.git /path/to/LLDB_Formatters
    ```
 
    A common location is `~/.lldb/`, but any path will work.
